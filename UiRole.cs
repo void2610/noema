@@ -22,5 +22,9 @@ namespace Void2610.Noema
         Text,
         /// <summary>IPointerClickHandler 直実装のカスタムクリック要素 (標準 Selectable 以外)</summary>
         Clickable,
+        /// <summary>IBeginDragHandler 直実装のカスタムドラッグ要素 (D&D チップ等)</summary>
+        Draggable,
+        /// <summary>IDropHandler 直実装のドロップ受け要素 (D&D の受け皿)</summary>
+        DropTarget,
     }
 }

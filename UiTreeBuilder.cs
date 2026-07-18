@@ -48,19 +48,26 @@ namespace Void2610.Noema
             if (go.TryGetComponent<ScrollRect>(out var scroll)) return Create(UiRole.ScrollArea, go, rootCanvas, idMap, "", scroll, scroll.enabled);
             // 標準 Selectable でないカスタムクリック要素 (カード等)。プロジェクトの実装のみ対象にしてライブラリ内部を拾わない
             if (TryGetProjectClickHandler(go, out var clickable)) return Create(UiRole.Clickable, go, rootCanvas, idMap, LabelOf(go), clickable, clickable is Behaviour { isActiveAndEnabled: true });
+            // カスタムドラッグ要素 (D&D チップ等)。クリックハンドラを持つ要素は Clickable 優先で上に拾われる
+            if (TryGetProjectHandler<UnityEngine.EventSystems.IBeginDragHandler>(go, out var draggable)) return Create(UiRole.Draggable, go, rootCanvas, idMap, LabelOf(go), draggable, draggable is Behaviour { isActiveAndEnabled: true });
+            // ドロップ受け要素 (D&D の受け皿)。UiPointer.Drag の to 引数として引けるようノード化する
+            if (TryGetProjectHandler<UnityEngine.EventSystems.IDropHandler>(go, out var dropTarget)) return Create(UiRole.DropTarget, go, rootCanvas, idMap, LabelOf(go), dropTarget, dropTarget is Behaviour { isActiveAndEnabled: true });
             // 対話要素の内側のラベルはノード化しない (ボタンの Text 側に集約される)
             if (go.TryGetComponent<TMP_Text>(out var text) && go.GetComponentInParent<Selectable>() == null) return Create(UiRole.Text, go, rootCanvas, idMap, text.text, text, false);
             return null;
         }
 
-        private static bool TryGetProjectClickHandler(GameObject go, out Component clickable)
+        private static bool TryGetProjectClickHandler(GameObject go, out Component clickable) =>
+            TryGetProjectHandler<UnityEngine.EventSystems.IPointerClickHandler>(go, out clickable);
+
+        private static bool TryGetProjectHandler<T>(GameObject go, out Component found) where T : class
         {
-            clickable = null;
-            foreach (var handler in go.GetComponents<UnityEngine.EventSystems.IPointerClickHandler>())
+            found = null;
+            foreach (var handler in go.GetComponents<T>())
             {
                 if (handler is not Component component) continue;
                 if (!UiViewIdMap.IsProjectAssembly(component.GetType())) continue;
-                clickable = component;
+                found = component;
                 return true;
             }
             return false;
