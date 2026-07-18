@@ -1,0 +1,9 @@
+{
+  "name": "com.void2610.noema",
+  "version": "0.1.0",
+  "displayName": "noema",
+  "description": "Semantic UI testing for Unity uGUI — observe UI as meaning (semantic tree, real-raycast clicks, visual regression).",
+  "unity": "6000.0",
+  "author": { "name": "void2610" },
+  "license": "MIT"
+}
