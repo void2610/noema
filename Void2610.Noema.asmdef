@@ -1,0 +1,20 @@
+{
+    "name": "Void2610.Noema",
+    "rootNamespace": "Void2610.Noema",
+    "references": [
+        "UnityEngine.UI",
+        "Unity.TextMeshPro",
+        "Void2610.Noema.Abstractions"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_EDITOR || DEVELOPMENT_BUILD || NOEMA_FORCE_ENABLE"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

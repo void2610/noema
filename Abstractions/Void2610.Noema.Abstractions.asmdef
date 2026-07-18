@@ -1,0 +1,14 @@
+{
+    "name": "Void2610.Noema.Abstractions",
+    "rootNamespace": "Void2610.Noema",
+    "references": [],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": true
+}
