@@ -97,6 +97,8 @@ namespace Void2610.Noema
                 // レターボックス調整済みの camera.rect は実スクリーン基準のため、RT へは全面で描く (CI の Screen サイズに影響されない)
                 camera.rect = new Rect(0f, 0f, 1f, 1f);
                 camera.targetTexture = rt;
+                // Camera Sorting Layer Texture 等は描画の副産物のため、1 回目は前の描画の状態が混ざる (捨て描画で揃える)
+                camera.Render();
                 camera.Render();
                 RenderTexture.active = rt;
                 var texture = new Texture2D(CAPTURE_WIDTH, CAPTURE_HEIGHT, TextureFormat.RGBA32, false);
