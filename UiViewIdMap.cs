@@ -29,11 +29,14 @@ namespace Void2610.Noema
                 var (serialized, runtime) = FieldsOf(type);
                 behaviours.Add((behaviour, serialized, runtime));
             }
-            // Inspector 配線 (serialized) を全 View 分先に登録し切る。behaviour ごとの交互登録だと FindObjectsByType の不定順で優先が崩れる
-            foreach (var (behaviour, serialized, _) in behaviours)
-                foreach (var field in serialized) Register(map, field.GetValue(behaviour), IdOf(behaviour.GetType(), field));
-            foreach (var (behaviour, _, runtime) in behaviours)
-                foreach (var field in runtime) Register(map, field.GetValue(behaviour), IdOf(behaviour.GetType(), field));
+            // 優先順位を段階で決め切る。同じ GameObject を複数フィールドが指すとき、
+            // 登録順が FindObjectsByType の不定順に依存すると実行ごとに ID が入れ替わってしまう。
+            // 自分自身を指す参照 (View が自分の Image を持つ等) は内部実装で、外から引く ID としては
+            // 親 View からの参照 (親/cards[0] 等) のほうが通りが良いので後段へ回す
+            RegisterPass(map, behaviours, serialized: true, selfReferences: false);
+            RegisterPass(map, behaviours, serialized: true, selfReferences: true);
+            RegisterPass(map, behaviours, serialized: false, selfReferences: false);
+            RegisterPass(map, behaviours, serialized: false, selfReferences: true);
             return map;
         }
 
@@ -68,26 +71,47 @@ namespace Void2610.Noema
             return result;
         }
 
-        private static void Register(Dictionary<GameObject, string> map, object value, string id)
+        private static void RegisterPass(Dictionary<GameObject, string> map,
+            List<(MonoBehaviour Behaviour, FieldInfo[] Serialized, FieldInfo[] Runtime)> behaviours,
+            bool serialized, bool selfReferences)
         {
+            foreach (var (behaviour, serializedFields, runtimeFields) in behaviours)
+            {
+                foreach (var field in serialized ? serializedFields : runtimeFields)
+                    Register(map, field.GetValue(behaviour), IdOf(behaviour.GetType(), field), behaviour.gameObject, selfReferences);
+            }
+        }
+
+        private static void Register(Dictionary<GameObject, string> map, object value, string id,
+            GameObject owner, bool selfReferences)
+        {
+            // 要素ごとに自己参照かを見て、その段のものだけ登録する
+            void TryAdd(GameObject go) => TryAddWith(go, id);
+
+            void TryAddWith(GameObject go, string elementId)
+            {
+                if ((go == owner) != selfReferences) return;
+                map.TryAdd(go, elementId);
+            }
+
             switch (value)
             {
                 // fake-null (未アサイン/破棄済み) を先に落とす。Transform 等が IEnumerable ケースへ落ちて列挙時に例外になるのを防ぐ
                 case Object unityObject when unityObject == null:
                     break;
                 case Component component:
-                    map.TryAdd(component.gameObject, id);
+                    TryAdd(component.gameObject);
                     break;
                 case GameObject go:
-                    map.TryAdd(go, id);
+                    TryAdd(go);
                     break;
                 // Dictionary<TKey, Button/GameObject> はキーを意味的 ID として使う (IEnumerable より先に判定する)
                 case IDictionary dictionary:
                     {
                         foreach (DictionaryEntry entry in dictionary)
                         {
-                            if (entry.Value is Component c && c != null) map.TryAdd(c.gameObject, $"{id}[{entry.Key}]");
-                            else if (entry.Value is GameObject g && g != null) map.TryAdd(g, $"{id}[{entry.Key}]");
+                            if (entry.Value is Component c && c != null) TryAddWith(c.gameObject, $"{id}[{entry.Key}]");
+                            else if (entry.Value is GameObject g && g != null) TryAddWith(g, $"{id}[{entry.Key}]");
                         }
                         break;
                     }
@@ -97,8 +121,8 @@ namespace Void2610.Noema
                         var index = 0;
                         foreach (var element in enumerable)
                         {
-                            if (element is Component c && c != null) map.TryAdd(c.gameObject, $"{id}[{index}]");
-                            else if (element is GameObject g && g != null) map.TryAdd(g, $"{id}[{index}]");
+                            if (element is Component c && c != null) TryAddWith(c.gameObject, $"{id}[{index}]");
+                            else if (element is GameObject g && g != null) TryAddWith(g, $"{id}[{index}]");
                             index++;
                         }
                         break;
