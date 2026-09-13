@@ -16,10 +16,17 @@ public static class NoemaBootstrap
 [SetUpFixture]
 public sealed class NoemaTestSetup
 {
+    private IDisposable _prefixScope;
+
     [OneTimeSetUp]
-    public void OneTimeSetUp() => NoemaConfig.ProjectAssemblyPrefix = "MyGame";
+    public void OneTimeSetUp() => _prefixScope = NoemaConfig.OverrideAssemblyPrefix("MyGame");
+
+    [OneTimeTearDown]
+    public void OneTimeTearDown() => _prefixScope?.Dispose();
 }
 ```
+
+`ProjectAssemblyPrefix` はグローバルな可変 static なので、直接代入すると同一 EditMode 実行に載る他アセンブリのテスト (UPM パッケージ同梱のテスト等) へ値が漏れる。`OverrideAssemblyPrefix` は Dispose で元の値へ戻すため、復元漏れが起きない。
 
 ### 2. ツリーを観る
 

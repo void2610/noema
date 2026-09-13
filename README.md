@@ -27,6 +27,16 @@ Package Manager の "Add package from git URL"、または `Packages/manifest.js
 
 インストールから E2E 連携までの手順は [Documentation~/tutorial.md](./Documentation~/tutorial.md) を参照。
 
+## テスト
+
+`Tests/Editor` に EditMode テストを同梱している。git URL 経由で導入した場合、パッケージのテストは利用側の `Packages/manifest.json` に `testables` を書かないとコンパイル・実行されない:
+
+```json
+"testables": ["com.void2610.noema"]
+```
+
+これを入れると Test Runner の EditMode に `Void2610.Noema.Tests` が現れ、利用側の CI にも一緒に載る。
+
 ## 制約
 
 - 対象は uGUI + TextMeshPro (UI Toolkit / IMGUI は対象外)
