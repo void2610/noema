@@ -16,7 +16,7 @@ namespace Void2610.Noema.Tests
         private IDisposable _prefixScope;
 
         [OneTimeSetUp]
-        public void OneTimeSetUp() => _prefixScope = NoemaConfig.OverrideAssemblyPrefix(TEST_ASSEMBLY_PREFIX);
+        public void OneTimeSetUp() => _prefixScope = NoemaConfig.PushProjectAssemblyPrefix(TEST_ASSEMBLY_PREFIX);
 
         [OneTimeTearDown]
         public void OneTimeTearDown()

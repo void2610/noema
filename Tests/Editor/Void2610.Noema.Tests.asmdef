@@ -6,8 +6,7 @@
         "UnityEditor.TestRunner",
         "Void2610.Noema",
         "Void2610.Noema.Abstractions",
-        "UnityEngine.UI",
-        "Unity.TextMeshPro"
+        "UnityEngine.UI"
     ],
     "includePlatforms": [
         "Editor"
