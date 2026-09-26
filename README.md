@@ -8,7 +8,7 @@ Unity uGUI のセマンティック UI テストライブラリ。UI を座標�
 
 - **セマンティックツリー**: uGUI/TMP 階層を role (Button/Checkbox/Textbox/Slider/Combobox/ScrollArea/Text/Clickable) と安定 ID でスナップショット化 (`UiTreeBuilder`)
 - **安定 ID**: View の `[SerializeField]` フィールド逆引き (`ViewType/fieldName`)。動的生成 UI は `[UiNodeSource]` 宣言で `field[key]` 形式 (`UiViewIdMap`)
-- **実 Raycast クリック**: EventSystem の Raycast を通すため、遮蔽・Raycast Target 切れ・interactable 切れをテスト失敗として検出 (`UiPointer`)
+- **実 Raycast クリック**: EventSystem の Raycast を通すため、遮蔽・Raycast Target 切れ・interactable 切れをテスト失敗として検出 (`UiPointer`)。中心が他の要素に隠れていれば矩形内の見えている点を探して押す (重なって並ぶ手札等)
 - **操作**: Slider/Textbox/Toggle/Dropdown/ScrollRect への意味的操作 (`UiActions`)
 - **ホバー / Submit / 到達判定**: ポインタを乗せる (`UiPointer.Hover`)、ゲームパッド決定相当 (`UiPointer.Submit`)、クリックせずに届くかだけを見る (`UiPointer.Probe`)
 - **ワールド要素**: タイルマップのマス等を `IUiNodeProvider` でツリーへ供給し、Input System の仮想マウスで実入力経路から操作 (`UiWorldPointer`)

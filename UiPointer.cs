@@ -183,7 +183,12 @@ namespace Void2610.Noema
                 : new ClickResult(false, $"no drop handler under {endPosition} ('{to.Id}' が IDropHandler を持たないか遮蔽されている)");
         }
 
-        // node の中心に実 Raycast を撃ち、最前面の T ハンドラが node 自身 (またはその祖先 / 子孫) であることを確かめる
+        // 矩形の内側を格子状に試す分割数 (中心で届かないときだけ使う)
+        private const int SAMPLE_GRID = 5;
+
+        // node に実 Raycast を撃ち、最前面の T ハンドラが node 自身 (またはその祖先 / 子孫) であることを確かめる。
+        // まず中心を試し、届かなければ矩形内の格子点を試す (扇状に重なる手札のように、見えている端だけが押せる要素のため)。
+        // どこにも届かなければ中心での失敗理由を返す
         private static ClickResult Resolve<T>(UiNode node, bool requireInteractable, out PointerEventData eventData, out RaycastResult topHit, out GameObject handler)
             where T : IEventSystemHandler
         {
@@ -195,11 +200,37 @@ namespace Void2610.Noema
             // 無効化ボタンへのクリックは Unity 側で無視されるため、成功待ちポーリングが入力解禁ゲートになるよう明示的に失敗させる (非 Selectable は祖先ハンドラ経路のため対象外)
             if (requireInteractable && node.Target is UnityEngine.UI.Selectable selectable && !selectable.IsInteractable()) return new ClickResult(false, $"'{node.Id}' is not interactable");
 
-            var position = node.ScreenBounds.center;
             // Editor 非フォーカス時の Screen.width は Game View と一致しないため、判定基準は所属 Canvas の描画矩形にする
             var canvas = node.Target.GetComponentInParent<Canvas>();
             if (canvas == null) return new ClickResult(false, $"no parent Canvas for '{node.Id}'");
             var pixelRect = canvas.rootCanvas.pixelRect;
+
+            var centerResult = TryPoint<T>(node, node.ScreenBounds.center, pixelRect, out eventData, out topHit, out handler);
+            if (centerResult.Success) return centerResult;
+            var bounds = node.ScreenBounds;
+            for (var y = 0; y < SAMPLE_GRID; y++)
+            {
+                for (var x = 0; x < SAMPLE_GRID; x++)
+                {
+                    // 縁ちょうどは隣の要素と境界を共有するため、各セルの中心を使う
+                    var point = new Vector2(
+                        bounds.xMin + bounds.width * (x + 0.5f) / SAMPLE_GRID,
+                        bounds.yMin + bounds.height * (y + 0.5f) / SAMPLE_GRID);
+                    if (TryPoint<T>(node, point, pixelRect, out eventData, out topHit, out handler).Success) return new ClickResult(true, node.Id);
+                }
+            }
+            eventData = null;
+            topHit = default;
+            handler = null;
+            return centerResult;
+        }
+
+        private static ClickResult TryPoint<T>(UiNode node, Vector2 position, Rect pixelRect, out PointerEventData eventData, out RaycastResult topHit, out GameObject handler)
+            where T : IEventSystemHandler
+        {
+            eventData = null;
+            topHit = default;
+            handler = null;
             if (!pixelRect.Contains(position)) return new ClickResult(false, $"off screen at {position} (canvas={pixelRect.size})");
 
             eventData = new PointerEventData(EventSystem.current)
