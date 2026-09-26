@@ -20,6 +20,10 @@ namespace Void2610.Noema
 
         private readonly List<InputDevice> _disabledMice = new();
         private Mouse _mouse;
+        private InputSettings.BackgroundBehavior? _savedBackgroundBehavior;
+#if UNITY_EDITOR
+        private InputSettings.EditorInputBehaviorInPlayMode? _savedEditorInputBehavior;
+#endif
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void Install()
@@ -50,6 +54,12 @@ namespace Void2610.Noema
 
         public void Release()
         {
+#if UNITY_EDITOR
+            if (_savedEditorInputBehavior.HasValue) InputSystem.settings.editorInputBehaviorInPlayMode = _savedEditorInputBehavior.Value;
+            _savedEditorInputBehavior = null;
+#endif
+            if (_savedBackgroundBehavior.HasValue) InputSystem.settings.backgroundBehavior = _savedBackgroundBehavior.Value;
+            _savedBackgroundBehavior = null;
             foreach (var device in _disabledMice)
             {
                 if (device.added) InputSystem.EnableDevice(device);
@@ -59,6 +69,21 @@ namespace Void2610.Noema
 
         private Mouse Acquire()
         {
+#if UNITY_EDITOR
+            // 既定ではポインタ入力は Game View にフォーカスがあるときだけゲームへ届く。
+            // Game View の無い batchmode (CI) やフォーカスの外れた Editor でも届くよう、操作中だけ全入力をゲームへ回す
+            if (!_savedEditorInputBehavior.HasValue)
+            {
+                _savedEditorInputBehavior = InputSystem.settings.editorInputBehaviorInPlayMode;
+                InputSystem.settings.editorInputBehaviorInPlayMode = InputSettings.EditorInputBehaviorInPlayMode.AllDeviceInputAlwaysGoesToGameView;
+            }
+#endif
+            // アプリがフォーカスを持たないとき (batchmode 含む) にデバイスを止めて入力を捨てる既定の振る舞いを、操作中だけ無効にする
+            if (!_savedBackgroundBehavior.HasValue)
+            {
+                _savedBackgroundBehavior = InputSystem.settings.backgroundBehavior;
+                InputSystem.settings.backgroundBehavior = InputSettings.BackgroundBehavior.IgnoreFocus;
+            }
             if (_mouse == null || !_mouse.added) _mouse = InputSystem.AddDevice<Mouse>(DEVICE_NAME);
             foreach (var device in InputSystem.devices)
             {
