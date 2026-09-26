@@ -23,28 +23,72 @@ namespace Void2610.Noema
             var actual = Capture();
             try
             {
-                var baselinePath = BaselinePath(name);
-                // 新規作成を OK にすると「一度も比較されないまま緑」が起こるため、意図的に非 OK を返してコミットを促す
-                if (!File.Exists(baselinePath))
-                {
-                    WritePng(baselinePath, actual);
-                    return $"baseline created: {baselinePath} (コミットして再実行する)";
-                }
-
-                var baseline = LoadPng(baselinePath);
-                try
-                {
-                    var result = CompareAndArtifact(name, baseline, actual, threshold, masks, out var detail);
-                    return result ? "OK" : detail;
-                }
-                finally
-                {
-                    Object.Destroy(baseline);
-                }
+                return CompareWithBaseline(name, actual, threshold, masks);
             }
             finally
             {
                 Object.Destroy(actual);
+            }
+        }
+
+        /// <summary>
+        /// 描画が落ち着くのを待ってから比較する。interval 秒 (実時間) ごとに撮り直し、連続する 2 枚が一致した時点の画を使う。
+        /// 実時間で動く Animator や Selectable の色遷移はフレーム数では完了時点が決まらない (マシンのフレームレートで変わる) ため。
+        /// timeout までに落ち着かない (ループ演出が映っている) ときは最後の画で比較する。そうした領域は masks で外す
+        /// </summary>
+        public static async Awaitable<string> AssertWhenStableAsync(string name, float threshold = DEFAULT_THRESHOLD, Rect[] masks = null,
+            float interval = 0.1f, float timeout = 5f, System.Threading.CancellationToken cancellationToken = default)
+        {
+            ValidateName(name);
+            var deadline = Time.realtimeSinceStartup + timeout;
+            var previous = Capture();
+            try
+            {
+                while (Time.realtimeSinceStartup < deadline)
+                {
+                    var next = Time.realtimeSinceStartup + interval;
+                    while (Time.realtimeSinceStartup < next) await Awaitable.NextFrameAsync(cancellationToken);
+                    var current = Capture();
+                    var stable = IsSame(previous, current, masks);
+                    Object.Destroy(previous);
+                    previous = current;
+                    if (stable) break;
+                }
+                return CompareWithBaseline(name, previous, threshold, masks);
+            }
+            finally
+            {
+                Object.Destroy(previous);
+            }
+        }
+
+        private static bool IsSame(Texture2D a, Texture2D b, Rect[] masks)
+        {
+            var aPixels = a.GetPixels32();
+            var bPixels = b.GetPixels32();
+            UiVisualDiff.ApplyMasks(aPixels, bPixels, b.width, b.height, masks);
+            return UiVisualDiff.Compare(aPixels, bPixels).DiffPixels == 0;
+        }
+
+        private static string CompareWithBaseline(string name, Texture2D actual, float threshold, Rect[] masks)
+        {
+            var baselinePath = BaselinePath(name);
+            // 新規作成を OK にすると「一度も比較されないまま緑」が起こるため、意図的に非 OK を返してコミットを促す
+            if (!File.Exists(baselinePath))
+            {
+                WritePng(baselinePath, actual);
+                return $"baseline created: {baselinePath} (コミットして再実行する)";
+            }
+
+            var baseline = LoadPng(baselinePath);
+            try
+            {
+                var result = CompareAndArtifact(name, baseline, actual, threshold, masks, out var detail);
+                return result ? "OK" : detail;
+            }
+            finally
+            {
+                Object.Destroy(baseline);
             }
         }
 

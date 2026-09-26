@@ -151,6 +151,7 @@ Assert.AreEqual("OK", message, message);
 - 差分時は `outputs/ui-visual/` に actual / diff PNG を吐く。CI ではこのディレクトリをアーティファクト収集する
 - 意図的な見た目変更は `UiVisualRegression.UpdateBaseline(name)` で上書きする
 - 毎回変わる領域 (時計・パーティクル) は `masks` (正規化矩形、左下原点) で比較から外せる
+- `AssertWhenStableAsync` (ブリッジの `Ui/VisualAssert`) は実時間で一定間隔ごとに撮り直し、連続 2 枚が一致してから比較する。実時間で動く Animator や Selectable の色遷移のように、フレーム数では完了時点が決まらない演出を待つため
 - 保存先と解像度は `NoemaConfig.VisualBaselineDirectory` / `VisualCaptureWidth` 等で変えられる
 
 ### 7. テストランナーとの繋ぎ方

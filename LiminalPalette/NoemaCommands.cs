@@ -167,9 +167,9 @@ namespace Void2610.Noema
             return node == null ? UiQuery.DescribeNotFound(id) : UiActions.Scroll(node, x, y).ToString();
         }
 
-        [LiminalCommand("Ui/VisualAssert", Description = "UI カメラの描画をベースライン PNG と比較する。一致で \"OK\"、初回はベースラインを作って非 OK を返す")]
-        public static string VisualAssert(string name, float threshold = UiVisualRegression.DEFAULT_THRESHOLD, string masks = "") =>
-            UiVisualRegression.Assert(name, threshold, UiVisualRegression.ParseMasks(masks));
+        [LiminalCommand("Ui/VisualAssert", Description = "UI カメラの描画が落ち着くのを待ってからベースライン PNG と比較する。一致で \"OK\"、初回はベースラインを作って非 OK を返す")]
+        public static async Task<string> VisualAssert(string name, float threshold = UiVisualRegression.DEFAULT_THRESHOLD, string masks = "") =>
+            await UiVisualRegression.AssertWhenStableAsync(name, threshold, UiVisualRegression.ParseMasks(masks));
 
         [LiminalCommand("Ui/VisualUpdateBaseline", Description = "UI カメラの描画でベースライン PNG を上書きする (意図した見た目の変更時)")]
         public static string VisualUpdateBaseline(string name) => UiVisualRegression.UpdateBaseline(name);
