@@ -71,6 +71,8 @@ public sealed class ReportView : MonoBehaviour
 }
 ```
 
+Button や Text 等の役割を持たない要素でも、View のフィールドが名指しで握っていれば `Element` ノードとして表示状態を観測できる (送り待ちの ▽ 等)。
+
 読む範囲は `[SerializeField]` と `[UiNodeSource]` の 2 つだけ (暗黙の型推定はしない)。`Dictionary<string, GameObject/Component>` はキーが、List/配列は index が ID になる。
 
 コレクションの要素が View 自身のとき、その View のフィールドの ID は親の要素 ID から合成される。同じ型の View が並ぶ手札のような UI でも ID が衝突しない:
@@ -160,6 +162,7 @@ noema 自体はテストフレームワーク非依存の観測・操作 API 集
 |---|---|
 | `Ui/Click` `Ui/Hover` `Ui/Submit` `Ui/Drag` | `clicked: <id>` / `failed: <理由>` |
 | `Ui/ClickWithin` `Ui/IdWithin` | ID の接頭辞と表示文字で一覧の 1 件を選ぶ (カード名で選ぶ等) |
+| `Ui/DeviceClick` | 見えている点を仮想マウスで押す (入力アクションを購読する UI 向け) |
 | `Ui/Probe` | `ok` / 届かない理由 |
 | `Ui/Exists` `Ui/Visible` `Ui/Interactable` | `true` / `false` |
 | `Ui/Text` | リッチテキストタグを除いた表示文字 |

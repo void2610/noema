@@ -37,6 +37,17 @@ namespace Void2610.Noema
             return Resolve<IPointerClickHandler>(node, requireInteractable: true, out _, out _, out _);
         }
 
+        /// <summary>
+        /// node のうち実入力でクリックが届く画面上の点を探す (中心で届かなければ見えている部分)。
+        /// 入力デバイスから押す操作 (<see cref="UiWorldPointer.DeviceClickAsync"/>) が押す位置を決めるのに使う
+        /// </summary>
+        public static bool TryFindReachablePoint(UiNode node, out Vector2 point, out ClickResult failure)
+        {
+            failure = Resolve<IPointerClickHandler>(node, requireInteractable: true, out var eventData, out _, out _);
+            point = failure.Success ? eventData.position : default;
+            return failure.Success;
+        }
+
         public static ClickResult Click(UiNode node)
         {
             if (node != null && node.IsWorld) return new ClickResult(false, $"'{node.Id}' はワールド要素のため UiWorldPointer.ClickAsync で操作する");

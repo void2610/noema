@@ -55,6 +55,37 @@ namespace Void2610.Noema
             return new UiPointer.ClickResult(true, node.Id);
         }
 
+        /// <summary>
+        /// uGUI の要素でも EventSystem へ直接イベントを送らず、見えている点を入力デバイス (仮想マウス) で押す。
+        /// ゲームが EventSystem ではなく入力アクション (Click / Submit) を購読している UI (全画面のオーバーレイ等) を操作するため
+        /// </summary>
+        public static async Awaitable<UiPointer.ClickResult> DeviceClickAsync(UiNode node, CancellationToken cancellationToken = default)
+        {
+            if (node == null) return new UiPointer.ClickResult(false, "node not found");
+            if (node.IsWorld) return await ClickAsync(node, cancellationToken);
+            if (!node.Visible) return new UiPointer.ClickResult(false, $"'{node.Id}' is not visible");
+            // 押す位置は実 Raycast で届く点にする。クリックハンドラを持たない要素は矩形の中心を押す
+            Vector2 point;
+            if (node.Role is UiRole.Button or UiRole.Checkbox or UiRole.Clickable)
+            {
+                if (!UiPointer.TryFindReachablePoint(node, out point, out var failure)) return failure;
+            }
+            else
+            {
+                point = node.ScreenBounds.center;
+            }
+            if (Driver == null) return new UiPointer.ClickResult(false, "IUiPointerDriver が未設定 (Input System 連携が無効)");
+            try
+            {
+                await Driver.ClickAsync(point, cancellationToken);
+            }
+            finally
+            {
+                Driver.Release();
+            }
+            return new UiPointer.ClickResult(true, node.Id);
+        }
+
         /// <summary>ポインタを node に乗せたままにする (ホバー表示の観測用)。外すときは <see cref="Unhover"/></summary>
         public static async Awaitable<UiPointer.ClickResult> HoverAsync(UiNode node, CancellationToken cancellationToken = default)
         {

@@ -32,6 +32,14 @@ namespace Void2610.Noema
             return node == null ? $"button with text '{text}' not found" : UiPointer.Click(node).ToString();
         }
 
+        [LiminalCommand("Ui/DeviceClick", Description = "ID のノードの見えている点を入力デバイス (仮想マウス) で押す。EventSystem ではなく入力アクションを購読する UI 向け。成功で \"clicked: <id>\"")]
+        public static async Task<string> DeviceClick(string id)
+        {
+            var node = UiQuery.FindById(id);
+            if (node == null) return UiQuery.DescribeNotFound(id);
+            return (await UiWorldPointer.DeviceClickAsync(node)).ToString();
+        }
+
         [LiminalCommand("Ui/ClickWithin", Description = "ID が prefix で始まり表示文字に text を含むノードを実入力経路でクリックする (一覧からカード名等で選ぶ)。成功で \"clicked: <prefix> '<text>'\"")]
         public static async Task<string> ClickWithin(string prefix, string text)
         {
