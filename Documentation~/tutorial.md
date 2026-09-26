@@ -159,6 +159,7 @@ noema 自体はテストフレームワーク非依存の観測・操作 API 集
 | コマンド | 戻り値 |
 |---|---|
 | `Ui/Click` `Ui/Hover` `Ui/Submit` `Ui/Drag` | `clicked: <id>` / `failed: <理由>` |
+| `Ui/ClickWithin` `Ui/IdWithin` | ID の接頭辞と表示文字で一覧の 1 件を選ぶ (カード名で選ぶ等) |
 | `Ui/Probe` | `ok` / 届かない理由 |
 | `Ui/Exists` `Ui/Visible` `Ui/Interactable` | `true` / `false` |
 | `Ui/Text` | リッチテキストタグを除いた表示文字 |

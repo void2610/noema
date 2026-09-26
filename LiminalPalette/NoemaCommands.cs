@@ -32,6 +32,19 @@ namespace Void2610.Noema
             return node == null ? $"button with text '{text}' not found" : UiPointer.Click(node).ToString();
         }
 
+        [LiminalCommand("Ui/ClickWithin", Description = "ID が prefix で始まり表示文字に text を含むノードを実入力経路でクリックする (一覧からカード名等で選ぶ)。成功で \"clicked: <prefix> '<text>'\"")]
+        public static async Task<string> ClickWithin(string prefix, string text)
+        {
+            var node = UiQuery.FindWithin(prefix, text);
+            if (node == null) return $"node under '{prefix}' with text '{text}' not found";
+            var result = node.IsWorld ? await UiWorldPointer.ClickAsync(node) : UiPointer.Click(node);
+            // どの ID が選ばれたかは呼び出し側に分からないため、成功時は入力から決まる文字列で返して期待値比較できるようにする
+            return result.Success ? $"clicked: {prefix} '{text}'" : result.ToString();
+        }
+
+        [LiminalCommand("Ui/IdWithin", Description = "ID が prefix で始まり表示文字に text を含むノードの ID。無ければ (none)")]
+        public static string IdWithin(string prefix, string text) => UiQuery.FindWithin(prefix, text)?.Id ?? "(none)";
+
         [LiminalCommand("Ui/Probe", Description = "いまクリックしたら届くか (表示・interactable・遮蔽)。届くなら \"ok\"、届かなければ理由")]
         public static string Probe(string id)
         {

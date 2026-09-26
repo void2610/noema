@@ -51,6 +51,18 @@ namespace Void2610.Noema
         public static IReadOnlyList<UiNode> FindByIdPrefix(string prefix) =>
             UiTreeBuilder.Build().Where(n => n.Id.StartsWith(prefix, StringComparison.Ordinal)).ToList();
 
+        /// <summary>
+        /// ID が prefix で始まり、表示文字に text を含むノード (一覧の中からカード名等で 1 件を選ぶ用途)。
+        /// 一覧は表示順の並び替えで index がずれやすいため、見た目の文字で選べるようにする。可視ノードを優先する
+        /// </summary>
+        public static UiNode FindWithin(string prefix, string text)
+        {
+            var matches = UiTreeBuilder.Build()
+                .Where(n => n.Id.StartsWith(prefix, StringComparison.Ordinal) && n.PlainText.Contains(text, StringComparison.Ordinal))
+                .ToList();
+            return matches.FirstOrDefault(n => n.Visible) ?? matches.FirstOrDefault();
+        }
+
         // 不可視の同名要素 (閉じた画面のボタン等) を拾って Click が誤失敗しないよう、可視ノードを優先する
         public static UiNode FindByRole(UiRole role, string text = null)
         {
