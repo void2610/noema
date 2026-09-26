@@ -11,13 +11,13 @@ namespace Void2610.Noema
     /// </summary>
     public static class UiVisualRegression
     {
-        private const string BASELINE_DIR = "Tests/VisualBaselines";
-        private const string ARTIFACT_DIR = "outputs/ui-visual";
-        private const int CAPTURE_WIDTH = 1920;
-        private const int CAPTURE_HEIGHT = 1080;
         public const float DEFAULT_THRESHOLD = 0.005f;
 
-        public static string Assert(string name, float threshold = DEFAULT_THRESHOLD)
+        private static int CaptureWidth => NoemaConfig.VisualCaptureWidth;
+        private static int CaptureHeight => NoemaConfig.VisualCaptureHeight;
+
+        /// <summary>masks は比較から外す正規化矩形 (左下原点、0-1)</summary>
+        public static string Assert(string name, float threshold = DEFAULT_THRESHOLD, Rect[] masks = null)
         {
             ValidateName(name);
             var actual = Capture();
@@ -34,7 +34,7 @@ namespace Void2610.Noema
                 var baseline = LoadPng(baselinePath);
                 try
                 {
-                    var result = CompareAndArtifact(name, baseline, actual, threshold, out var detail);
+                    var result = CompareAndArtifact(name, baseline, actual, threshold, masks, out var detail);
                     return result ? "OK" : detail;
                 }
                 finally
@@ -64,10 +64,31 @@ namespace Void2610.Noema
             }
         }
 
-        private static bool CompareAndArtifact(string name, Texture2D baseline, Texture2D actual, float threshold, out string detail)
+        /// <summary>"x,y,w,h;x,y,w,h" 形式 (正規化、左下原点) の文字列をマスク矩形へ変換する。空なら null</summary>
+        public static Rect[] ParseMasks(string masks)
+        {
+            if (string.IsNullOrWhiteSpace(masks)) return null;
+            var rects = new System.Collections.Generic.List<Rect>();
+            foreach (var part in masks.Split(';', System.StringSplitOptions.RemoveEmptyEntries))
+            {
+                var values = part.Split(',');
+                if (values.Length != 4) throw new System.ArgumentException($"マスクは x,y,w,h の 4 値で指定する: '{part}'");
+                var parsed = new float[4];
+                for (var i = 0; i < 4; i++)
+                {
+                    if (!float.TryParse(values[i].Trim(), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out parsed[i]))
+                        throw new System.ArgumentException($"マスクの数値が不正: '{part}'");
+                }
+                rects.Add(new Rect(parsed[0], parsed[1], parsed[2], parsed[3]));
+            }
+            return rects.ToArray();
+        }
+
+        private static bool CompareAndArtifact(string name, Texture2D baseline, Texture2D actual, float threshold, Rect[] masks, out string detail)
         {
             var baselinePixels = baseline.GetPixels32();
             var actualPixels = actual.GetPixels32();
+            UiVisualDiff.ApplyMasks(baselinePixels, actualPixels, actual.width, actual.height, masks);
             var diffPixels = new Color32[actualPixels.Length];
             var result = UiVisualDiff.Compare(baselinePixels, actualPixels, diffPixels);
             if (result.DiffRatio <= threshold)
@@ -88,7 +109,7 @@ namespace Void2610.Noema
         {
             var camera = FindUiCamera();
             if (camera == null) throw new System.InvalidOperationException("UI カメラが見つからない (ScreenSpaceCamera の Canvas と worldCamera が必要)");
-            var rt = RenderTexture.GetTemporary(CAPTURE_WIDTH, CAPTURE_HEIGHT, 24);
+            var rt = RenderTexture.GetTemporary(CaptureWidth, CaptureHeight, 24);
             var prevTarget = camera.targetTexture;
             var prevActive = RenderTexture.active;
             var prevRect = camera.rect;
@@ -101,8 +122,8 @@ namespace Void2610.Noema
                 camera.Render();
                 camera.Render();
                 RenderTexture.active = rt;
-                var texture = new Texture2D(CAPTURE_WIDTH, CAPTURE_HEIGHT, TextureFormat.RGBA32, false);
-                texture.ReadPixels(new Rect(0, 0, CAPTURE_WIDTH, CAPTURE_HEIGHT), 0, 0);
+                var texture = new Texture2D(CaptureWidth, CaptureHeight, TextureFormat.RGBA32, false);
+                texture.ReadPixels(new Rect(0, 0, CaptureWidth, CaptureHeight), 0, 0);
                 texture.Apply();
                 return texture;
             }
@@ -127,12 +148,12 @@ namespace Void2610.Noema
 
         private static string BaselinePath(string name)
         {
-            return Path.Combine(BASELINE_DIR, $"{name}@{CAPTURE_WIDTH}x{CAPTURE_HEIGHT}.png");
+            return Path.Combine(NoemaConfig.VisualBaselineDirectory, $"{name}@{CaptureWidth}x{CaptureHeight}.png");
         }
 
         private static string ArtifactPath(string name, string kind)
         {
-            return Path.Combine(ARTIFACT_DIR, $"{name}-{kind}.png");
+            return Path.Combine(NoemaConfig.VisualArtifactDirectory, $"{name}-{kind}.png");
         }
 
         // name はコマンド引数として外部から渡るため、パス区切りや ../ による意図外パスへの書き込みを拒否する
@@ -170,11 +191,11 @@ namespace Void2610.Noema
                 Object.Destroy(texture);
                 throw new System.InvalidOperationException($"baseline PNG の読込に失敗 (破損の可能性): {path}");
             }
-            if (texture.width != CAPTURE_WIDTH || texture.height != CAPTURE_HEIGHT)
+            if (texture.width != CaptureWidth || texture.height != CaptureHeight)
             {
                 var actualSize = $"{texture.width}x{texture.height}";
                 Object.Destroy(texture);
-                throw new System.InvalidOperationException($"baseline PNG のサイズが不正: {path} 実サイズ={actualSize} (期待 {CAPTURE_WIDTH}x{CAPTURE_HEIGHT})");
+                throw new System.InvalidOperationException($"baseline PNG のサイズが不正: {path} 実サイズ={actualSize} (期待 {CaptureWidth}x{CaptureHeight})");
             }
             return texture;
         }

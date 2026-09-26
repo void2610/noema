@@ -41,6 +41,27 @@ namespace Void2610.Noema
             return new Result(baseline.Length, diffCount);
         }
 
+        /// <summary>
+        /// masks (正規化矩形、左下原点) の範囲を比較対象から外すため、actual の該当画素を baseline の値で上書きする。
+        /// 時計やパーティクルのように毎回変わる領域を除いて、残りの崩れだけを検出するための前処理
+        /// </summary>
+        public static void ApplyMasks(Color32[] baseline, Color32[] actual, int width, int height, Rect[] masks)
+        {
+            if (masks == null || masks.Length == 0) return;
+            if (baseline.Length != width * height || actual.Length != width * height) throw new System.ArgumentException($"ピクセル数が {width}x{height} と不一致: baseline={baseline.Length} actual={actual.Length}");
+            foreach (var mask in masks)
+            {
+                var xMin = Mathf.Clamp(Mathf.FloorToInt(mask.xMin * width), 0, width);
+                var xMax = Mathf.Clamp(Mathf.CeilToInt(mask.xMax * width), 0, width);
+                var yMin = Mathf.Clamp(Mathf.FloorToInt(mask.yMin * height), 0, height);
+                var yMax = Mathf.Clamp(Mathf.CeilToInt(mask.yMax * height), 0, height);
+                for (var y = yMin; y < yMax; y++)
+                {
+                    for (var x = xMin; x < xMax; x++) actual[y * width + x] = baseline[y * width + x];
+                }
+            }
+        }
+
         // アルファはスクリーンショットでは常に不透明なので意図的に比較しない
         private static bool IsSame(Color32 a, Color32 b)
         {
