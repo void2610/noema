@@ -90,7 +90,8 @@ namespace Void2610.Noema
             return result;
         }
 
-        // View ごとの ID の起点 (通常は型名、コレクション要素として握られていれば親の要素 ID) を決める
+        // View ごとの ID の起点を決める。通常は型名で、コレクション要素として握られていれば親の要素 ID。
+        // 同じ型の View が複数あって型名が衝突するときは、単一フィールドで握っている親の ID で合成する (RestView/healButton 等)
         private static Dictionary<MonoBehaviour, string> ResolveBaseIds(
             List<(MonoBehaviour Behaviour, FieldInfo[] Serialized, FieldInfo[] Runtime)> behaviours)
         {
@@ -99,10 +100,13 @@ namespace Void2610.Noema
 
             // 子 View → (親 View, 親から見た要素名)。複数の親に握られている場合は決定的に 1 つへ絞る
             var parents = new Dictionary<MonoBehaviour, (MonoBehaviour Owner, string Element, string SortKey)>();
+            var singleParents = new Dictionary<MonoBehaviour, (MonoBehaviour Owner, string Element, string SortKey)>();
+            var typeCounts = new Dictionary<System.Type, int>();
             foreach (var (owner, serialized, runtime) in behaviours)
             {
-                foreach (var field in serialized) CollectCollectionChildren(owner, field, projectBehaviours, parents);
-                foreach (var field in runtime) CollectCollectionChildren(owner, field, projectBehaviours, parents);
+                typeCounts[owner.GetType()] = typeCounts.TryGetValue(owner.GetType(), out var count) ? count + 1 : 1;
+                foreach (var field in serialized) CollectChildren(owner, field, projectBehaviours, parents, singleParents);
+                foreach (var field in runtime) CollectChildren(owner, field, projectBehaviours, parents, singleParents);
             }
 
             var bases = new Dictionary<MonoBehaviour, string>();
@@ -112,8 +116,10 @@ namespace Void2610.Noema
             {
                 if (bases.TryGetValue(behaviour, out var cached)) return cached;
                 var typeName = behaviour.GetType().Name;
+                if (!parents.TryGetValue(behaviour, out var parent)
+                    && !(typeCounts[behaviour.GetType()] > 1 && singleParents.TryGetValue(behaviour, out parent))) return typeName;
                 // 循環参照は合成せず型名で打ち切る
-                if (!parents.TryGetValue(behaviour, out var parent) || !resolving.Add(behaviour)) return typeName;
+                if (!resolving.Add(behaviour)) return typeName;
                 var id = $"{BaseOf(parent.Owner)}/{parent.Element}";
                 resolving.Remove(behaviour);
                 bases[behaviour] = id;
@@ -124,12 +130,24 @@ namespace Void2610.Noema
             return bases;
         }
 
-        private static void CollectCollectionChildren(MonoBehaviour owner, FieldInfo field, HashSet<MonoBehaviour> projectBehaviours,
-            Dictionary<MonoBehaviour, (MonoBehaviour Owner, string Element, string SortKey)> parents)
+        private static void CollectChildren(MonoBehaviour owner, FieldInfo field, HashSet<MonoBehaviour> projectBehaviours,
+            Dictionary<MonoBehaviour, (MonoBehaviour Owner, string Element, string SortKey)> parents,
+            Dictionary<MonoBehaviour, (MonoBehaviour Owner, string Element, string SortKey)> singleParents)
         {
             var value = field.GetValue(owner);
+            if (value is string) return;
+            if (value is MonoBehaviour single)
+            {
+                if (single == null || single == owner || !projectBehaviours.Contains(single)) return;
+                // 子を階層の配下に持つ親を優先し、残りは名前順で決定的に 1 つへ絞る
+                var contained = single.transform.IsChildOf(owner.transform) ? "0" : "1";
+                var singleSortKey = $"{contained}/{owner.GetType().FullName}/{FieldNameOf(field)}";
+                if (singleParents.TryGetValue(single, out var current) && string.CompareOrdinal(current.SortKey, singleSortKey) <= 0) return;
+                singleParents[single] = (owner, FieldNameOf(field), singleSortKey);
+                return;
+            }
             // Transform 等の UnityEngine.Object は IEnumerable でもコレクションとして扱わない
-            if (value is Object || value is string) return;
+            if (value is Object) return;
 
             void Candidate(object element, string key)
             {

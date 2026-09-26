@@ -101,6 +101,29 @@ namespace Void2610.Noema.Tests
         }
 
         [Test]
+        public void 同じ型のViewが複数あれば単一フィールドで握る親のIDで合成する()
+        {
+            var owner = CreateView<TestPairView>("Pair", _canvas.transform);
+            owner.left = CreateView<TestChildView>("Left", owner.transform);
+            owner.left.actionButton = CreateButton("Action", owner.left.transform);
+            owner.right = CreateView<TestChildView>("Right", owner.transform);
+            owner.right.actionButton = CreateButton("Action", owner.right.transform);
+
+            Assert.That(UiQuery.FindById("TestPairView/left/actionButton")?.GameObject, Is.EqualTo(owner.left.actionButton.gameObject));
+            Assert.That(UiQuery.FindById("TestPairView/right/actionButton")?.GameObject, Is.EqualTo(owner.right.actionButton.gameObject));
+        }
+
+        [Test]
+        public void 型が衝突しない単一フィールドのViewは型名のままのIDになる()
+        {
+            var owner = CreateView<TestPairView>("Pair", _canvas.transform);
+            owner.left = CreateView<TestChildView>("Left", owner.transform);
+            owner.left.actionButton = CreateButton("Action", owner.left.transform);
+
+            Assert.That(UiQuery.FindById("TestChildView/actionButton")?.GameObject, Is.EqualTo(owner.left.actionButton.gameObject));
+        }
+
+        [Test]
         public void 自作Button派生の基底フィールドはIDの供給源にしない()
         {
             var go = new GameObject("Derived", typeof(RectTransform), typeof(Image));
