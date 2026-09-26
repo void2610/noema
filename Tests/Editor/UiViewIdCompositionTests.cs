@@ -89,6 +89,18 @@ namespace Void2610.Noema.Tests
         }
 
         [Test]
+        public void 要素を配下に持つViewの参照は無関係なViewのserialized参照より優先される()
+        {
+            var parent = CreateView<TestParentView>("Parent", _canvas.transform);
+            parent.closeButton = CreateButton("Close", parent.transform);
+            // 選択中の要素を追うデバッグ用 View のように、配下に持たない要素を指す参照
+            var tracker = CreateView<TestChildView>("Tracker", _canvas.transform);
+            tracker.actionButton = parent.closeButton;
+
+            Assert.That(UiQuery.FindById("TestParentView/closeButton")?.GameObject, Is.EqualTo(parent.closeButton.gameObject));
+        }
+
+        [Test]
         public void 自作Button派生の基底フィールドはIDの供給源にしない()
         {
             var go = new GameObject("Derived", typeof(RectTransform), typeof(Image));

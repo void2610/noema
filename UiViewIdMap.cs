@@ -34,13 +34,30 @@ namespace Void2610.Noema
             var bases = ResolveBaseIds(behaviours);
             // 優先順位を段階で決め切る。同じ GameObject を複数フィールドが指すとき、
             // 登録順が FindObjectsByType の不定順に依存すると実行ごとに ID が入れ替わってしまう。
+            // 要素を階層の配下に持つ View からの参照を最優先する (選択中の要素を追うデバッグ用の参照等に ID を奪われないように)。
             // 自分自身を指す参照 (View が自分の Image を持つ等) は内部実装で、外から引く ID としては
             // 親 View からの参照 (親/cards[0] 等) のほうが通りが良いので後段へ回す
-            RegisterPass(map, behaviours, bases, serialized: true, selfReferences: false);
-            RegisterPass(map, behaviours, bases, serialized: true, selfReferences: true);
-            RegisterPass(map, behaviours, bases, serialized: false, selfReferences: false);
-            RegisterPass(map, behaviours, bases, serialized: false, selfReferences: true);
+            RegisterPass(map, behaviours, bases, serialized: true, Relation.Contained);
+            RegisterPass(map, behaviours, bases, serialized: false, Relation.Contained);
+            RegisterPass(map, behaviours, bases, serialized: true, Relation.Unrelated);
+            RegisterPass(map, behaviours, bases, serialized: true, Relation.Self);
+            RegisterPass(map, behaviours, bases, serialized: false, Relation.Unrelated);
+            RegisterPass(map, behaviours, bases, serialized: false, Relation.Self);
             return map;
+        }
+
+        // 参照先 GameObject と参照元 View の位置関係
+        private enum Relation
+        {
+            Contained,
+            Unrelated,
+            Self,
+        }
+
+        private static Relation RelationOf(GameObject go, GameObject owner)
+        {
+            if (go == owner) return Relation.Self;
+            return go.transform.IsChildOf(owner.transform) ? Relation.Contained : Relation.Unrelated;
         }
 
         internal static bool IsProjectAssembly(System.Type type)
@@ -139,24 +156,24 @@ namespace Void2610.Noema
 
         private static void RegisterPass(Dictionary<GameObject, string> map,
             List<(MonoBehaviour Behaviour, FieldInfo[] Serialized, FieldInfo[] Runtime)> behaviours,
-            Dictionary<MonoBehaviour, string> bases, bool serialized, bool selfReferences)
+            Dictionary<MonoBehaviour, string> bases, bool serialized, Relation relation)
         {
             foreach (var (behaviour, serializedFields, runtimeFields) in behaviours)
             {
                 foreach (var field in serialized ? serializedFields : runtimeFields)
-                    Register(map, field.GetValue(behaviour), $"{bases[behaviour]}/{FieldNameOf(field)}", behaviour.gameObject, selfReferences);
+                    Register(map, field.GetValue(behaviour), $"{bases[behaviour]}/{FieldNameOf(field)}", behaviour.gameObject, relation);
             }
         }
 
         private static void Register(Dictionary<GameObject, string> map, object value, string id,
-            GameObject owner, bool selfReferences)
+            GameObject owner, Relation relation)
         {
-            // 要素ごとに自己参照かを見て、その段のものだけ登録する
+            // 要素ごとに参照元との位置関係を見て、その段のものだけ登録する
             void TryAdd(GameObject go) => TryAddWith(go, id);
 
             void TryAddWith(GameObject go, string elementId)
             {
-                if ((go == owner) != selfReferences) return;
+                if (RelationOf(go, owner) != relation) return;
                 map.TryAdd(go, elementId);
             }
 
