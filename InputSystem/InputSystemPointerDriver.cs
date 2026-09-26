@@ -46,6 +46,12 @@ namespace Void2610.Noema
         public async Awaitable ClickAsync(Vector2 screenPosition, CancellationToken cancellationToken)
         {
             await MoveAsync(screenPosition, cancellationToken);
+            await PressAsync(screenPosition, cancellationToken);
+        }
+
+        public async Awaitable PressAsync(Vector2 screenPosition, CancellationToken cancellationToken)
+        {
+            Acquire();
             InputSystem.QueueStateEvent(_mouse, new MouseState { position = screenPosition }.WithButton(MouseButton.Left));
             await WaitFramesAsync(cancellationToken);
             InputSystem.QueueStateEvent(_mouse, new MouseState { position = screenPosition });

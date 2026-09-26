@@ -14,6 +14,9 @@ namespace Void2610.Noema
         /// <summary>screenPosition へ動かして左ボタンを押して離し、ゲーム側が押下を読むまで待つ</summary>
         Awaitable ClickAsync(Vector2 screenPosition, CancellationToken cancellationToken);
 
+        /// <summary>ポインタを screenPosition に置いたまま左ボタンを押して離し、ゲーム側が押下を読むまで待つ (MoveAsync の後に使う)</summary>
+        Awaitable PressAsync(Vector2 screenPosition, CancellationToken cancellationToken);
+
         /// <summary>止めていた他のポインタを戻し、操作用のポインタを片付ける</summary>
         void Release();
     }
@@ -38,6 +41,11 @@ namespace Void2610.Noema
             return reason == null ? new UiPointer.ClickResult(true, node.Id) : new UiPointer.ClickResult(false, reason);
         }
 
+        // ポインタを動かしている間に要素が動いたとみなす距離 (ピクセル)
+        private const float SETTLED_DISTANCE = 1f;
+        // 動く要素を追いかけ直す上限回数
+        private const int MAX_FOLLOW_ATTEMPTS = 10;
+
         public static async Awaitable<UiPointer.ClickResult> ClickAsync(UiNode node, CancellationToken cancellationToken = default)
         {
             if (node != null && !node.IsWorld) return UiPointer.Click(node);
@@ -46,13 +54,31 @@ namespace Void2610.Noema
             if (Driver == null) return new UiPointer.ClickResult(false, "IUiPointerDriver が未設定 (Input System 連携が無効)");
             try
             {
-                await Driver.ClickAsync(node.ScreenBounds.center, cancellationToken);
+                // ポインタを動かす数フレームの間にカメラの追従等で要素が動くと、押した瞬間には別の要素を押してしまう。
+                // 動かした後に位置を取り直し、止まっていてそこで届くことを確かめてから押す
+                var current = node;
+                for (var attempt = 0; attempt < MAX_FOLLOW_ATTEMPTS; attempt++)
+                {
+                    var point = current.ScreenBounds.center;
+                    await Driver.MoveAsync(point, cancellationToken);
+                    var refreshed = UiQuery.FindById(current.Id);
+                    if (refreshed == null) return new UiPointer.ClickResult(false, $"'{current.Id}' disappeared while moving the pointer");
+                    var settled = (refreshed.ScreenBounds.center - point).sqrMagnitude <= SETTLED_DISTANCE * SETTLED_DISTANCE;
+                    probe = Probe(refreshed);
+                    if (settled && probe.Success)
+                    {
+                        await Driver.PressAsync(point, cancellationToken);
+                        return new UiPointer.ClickResult(true, node.Id);
+                    }
+                    if (!probe.Success && settled) return probe;
+                    current = refreshed;
+                }
+                return new UiPointer.ClickResult(false, $"'{node.Id}' kept moving on screen ({MAX_FOLLOW_ATTEMPTS} attempts)");
             }
             finally
             {
                 Driver.Release();
             }
-            return new UiPointer.ClickResult(true, node.Id);
         }
 
         /// <summary>
@@ -95,8 +121,18 @@ namespace Void2610.Noema
             var reason = node.Provider.Probe(node, node.ScreenBounds.center);
             if (reason != null) return new UiPointer.ClickResult(false, reason);
             if (Driver == null) return new UiPointer.ClickResult(false, "IUiPointerDriver が未設定 (Input System 連携が無効)");
-            await Driver.MoveAsync(node.ScreenBounds.center, cancellationToken);
-            return new UiPointer.ClickResult(true, node.Id);
+            // クリックと同じく、ポインタを動かしている間に要素が動いたら追いかけ直す
+            var current = node;
+            for (var attempt = 0; attempt < MAX_FOLLOW_ATTEMPTS; attempt++)
+            {
+                var point = current.ScreenBounds.center;
+                await Driver.MoveAsync(point, cancellationToken);
+                var refreshed = UiQuery.FindById(current.Id);
+                if (refreshed == null) return new UiPointer.ClickResult(false, $"'{current.Id}' disappeared while moving the pointer");
+                if ((refreshed.ScreenBounds.center - point).sqrMagnitude <= SETTLED_DISTANCE * SETTLED_DISTANCE) return new UiPointer.ClickResult(true, node.Id);
+                current = refreshed;
+            }
+            return new UiPointer.ClickResult(false, $"'{node.Id}' kept moving on screen ({MAX_FOLLOW_ATTEMPTS} attempts)");
         }
 
         /// <summary>uGUI のホバーを外し、ワールド側で止めていた実ポインタも戻す</summary>
