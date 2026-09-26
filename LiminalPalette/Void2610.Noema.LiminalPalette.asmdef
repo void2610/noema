@@ -1,0 +1,26 @@
+{
+    "name": "Void2610.Noema.LiminalPalette",
+    "rootNamespace": "Void2610.Noema",
+    "references": [
+        "Void2610.Noema",
+        "Void2610.LiminalPalette"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_EDITOR || DEVELOPMENT_BUILD || NOEMA_FORCE_ENABLE",
+        "NOEMA_LIMINAL_PALETTE"
+    ],
+    "versionDefines": [
+        {
+            "name": "com.void2610.liminal-palette",
+            "expression": "",
+            "define": "NOEMA_LIMINAL_PALETTE"
+        }
+    ],
+    "noEngineReferences": false
+}
