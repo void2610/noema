@@ -59,6 +59,8 @@ namespace Void2610.Noema
             // GetFields は基底の private を返さないため、継承チェーンを自前で遡る
             for (var type = viewType; type != null && type != typeof(MonoBehaviour); type = type.BaseType)
             {
+                // Button 派生の自作クラス等で、基底 (エンジン側) の m_TargetGraphic 等を ID の供給源にしない
+                if (!IsProjectAssembly(type)) continue;
                 foreach (var field in type.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly))
                 {
                     if (field.IsPublic || field.GetCustomAttribute<SerializeField>() != null) serialized.Add(field);

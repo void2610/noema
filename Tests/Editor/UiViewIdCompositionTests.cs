@@ -89,6 +89,17 @@ namespace Void2610.Noema.Tests
         }
 
         [Test]
+        public void 自作Button派生の基底フィールドはIDの供給源にしない()
+        {
+            var go = new GameObject("Derived", typeof(RectTransform), typeof(Image));
+            go.transform.SetParent(_canvas.transform, false);
+            var button = go.AddComponent<TestButton>();
+            button.targetGraphic = go.GetComponent<Image>();
+
+            Assert.That(UiTreeBuilder.Build().Any(n => n.Id.Contains("m_TargetGraphic")), Is.False);
+        }
+
+        [Test]
         public void 接頭辞が未設定ならツリー構築で例外()
         {
             NoemaConfig.AdditionalAssemblyPrefixes = System.Array.Empty<string>();
