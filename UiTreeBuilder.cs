@@ -25,7 +25,28 @@ namespace Void2610.Noema
                 if (!canvas.isActiveAndEnabled || canvas != canvas.rootCanvas) continue;
                 Walk(canvas.transform, canvas, idMap, nodes);
             }
+            UiNodeProviders.CollectAll(nodes);
             return nodes;
+        }
+
+        /// <summary>
+        /// 1 つの GameObject だけをノード化する (ツリー全体を歩かずに ID 1 件を解決する高速経路用)。
+        /// Build で走査されない位置 (無効な Canvas の配下等) にある、または UI 要素でなければ null
+        /// </summary>
+        internal static UiNode TryBuildSingle(GameObject go, IReadOnlyDictionary<GameObject, string> idMap)
+        {
+            if (go == null) return null;
+            // 非アクティブ配下では Canvas.rootCanvas が自分自身を返すことがあるため、祖先の最上位 Canvas を自前で辿る
+            var canvases = go.GetComponentsInParent<Canvas>(true);
+            if (canvases.Length == 0) return null;
+            var rootCanvas = canvases[^1];
+            if (!rootCanvas.isActiveAndEnabled) return null;
+            // Walk と同じく、disabled な入れ子 Canvas の配下は拾わない
+            for (var t = go.transform; t != null && t != rootCanvas.transform; t = t.parent)
+            {
+                if (t.TryGetComponent<Canvas>(out var nested) && nested != rootCanvas && !nested.enabled) return null;
+            }
+            return TryCreateNode(go, rootCanvas, idMap);
         }
 
         private static void Walk(Transform transform, Canvas rootCanvas, IReadOnlyDictionary<GameObject, string> idMap, List<UiNode> nodes)

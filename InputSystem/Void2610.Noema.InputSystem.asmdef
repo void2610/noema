@@ -1,0 +1,26 @@
+{
+    "name": "Void2610.Noema.InputSystem",
+    "rootNamespace": "Void2610.Noema",
+    "references": [
+        "Void2610.Noema",
+        "Unity.InputSystem"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_EDITOR || DEVELOPMENT_BUILD || NOEMA_FORCE_ENABLE",
+        "NOEMA_INPUT_SYSTEM"
+    ],
+    "versionDefines": [
+        {
+            "name": "com.unity.inputsystem",
+            "expression": "",
+            "define": "NOEMA_INPUT_SYSTEM"
+        }
+    ],
+    "noEngineReferences": false
+}
