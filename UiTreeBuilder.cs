@@ -73,8 +73,11 @@ namespace Void2610.Noema
             if (TryGetProjectHandler<UnityEngine.EventSystems.IBeginDragHandler>(go, out var draggable)) return Create(UiRole.Draggable, go, rootCanvas, idMap, LabelOf(go), draggable, draggable is Behaviour { isActiveAndEnabled: true });
             // ドロップ受け要素 (D&D の受け皿)。UiPointer.Drag の to 引数として引けるようノード化する
             if (TryGetProjectHandler<UnityEngine.EventSystems.IDropHandler>(go, out var dropTarget)) return Create(UiRole.DropTarget, go, rootCanvas, idMap, LabelOf(go), dropTarget, dropTarget is Behaviour { isActiveAndEnabled: true });
-            // 対話要素の内側のラベルはノード化しない (ボタンの Text 側に集約される)
-            if (go.TryGetComponent<TMP_Text>(out var text) && go.GetComponentInParent<Selectable>() == null) return Create(UiRole.Text, go, rootCanvas, idMap, text.text, text, false);
+            // 対話要素の内側のラベルはノード化しない (ボタンの Text 側に集約される)。
+            // ただし View が名指しで握っている文字は、フォーカス用の Selectable の配下にあっても独立した表示として扱う
+            if (go.TryGetComponent<TMP_Text>(out var text) && (idMap.ContainsKey(go) || go.GetComponentInParent<Selectable>() == null)) return Create(UiRole.Text, go, rootCanvas, idMap, text.text, text, false);
+            // 役割を持たない要素でも View が名指しで握っているなら、表示状態を観測できるようにする (階層パス由来の要素は増やさない)
+            if (idMap.ContainsKey(go) && go.transform is RectTransform rectTransform) return Create(UiRole.Element, go, rootCanvas, idMap, "", rectTransform, false);
             return null;
         }
 

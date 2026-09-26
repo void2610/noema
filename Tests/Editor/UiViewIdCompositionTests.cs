@@ -124,6 +124,31 @@ namespace Void2610.Noema.Tests
         }
 
         [Test]
+        public void 役割の無い要素もViewが握っていればElementとして表示状態を観測できる()
+        {
+            var view = CreateView<TestMarkerView>("Marker", _canvas.transform);
+            var marker = new GameObject("Indicator", typeof(RectTransform));
+            marker.transform.SetParent(view.transform, false);
+            view.marker = (RectTransform)marker.transform;
+
+            var node = UiQuery.FindById("TestMarkerView/marker");
+            Assert.That(node?.Role, Is.EqualTo(UiRole.Element));
+            Assert.That(node.Visible, Is.True);
+
+            marker.SetActive(false);
+            Assert.That(UiQuery.FindById("TestMarkerView/marker").Visible, Is.False);
+        }
+
+        [Test]
+        public void Viewに握られていない役割の無い要素はノードにしない()
+        {
+            var plain = new GameObject("Plain", typeof(RectTransform));
+            plain.transform.SetParent(_canvas.transform, false);
+
+            Assert.That(UiTreeBuilder.Build().Any(n => n.GameObject == plain), Is.False);
+        }
+
+        [Test]
         public void 自作Button派生の基底フィールドはIDの供給源にしない()
         {
             var go = new GameObject("Derived", typeof(RectTransform), typeof(Image));

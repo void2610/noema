@@ -26,5 +26,7 @@ namespace Void2610.Noema
         Draggable,
         /// <summary>IDropHandler 直実装のドロップ受け要素 (D&D の受け皿)</summary>
         DropTarget,
+        /// <summary>上のどれにも当たらないが View のフィールドで明示的に握られている要素 (送り待ちの ▽ 等、表示状態の観測用)</summary>
+        Element,
     }
 }
