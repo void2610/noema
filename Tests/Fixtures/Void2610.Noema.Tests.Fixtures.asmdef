@@ -1,0 +1,19 @@
+{
+    "name": "Void2610.Noema.Tests.Fixtures",
+    "rootNamespace": "Void2610.Noema.Tests",
+    "references": [
+        "Void2610.Noema.Abstractions",
+        "UnityEngine.UI"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
