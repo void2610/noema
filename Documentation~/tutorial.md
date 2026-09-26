@@ -9,7 +9,12 @@ noema は「どのアセンブリの View を ID 供給源にするか」だけ�
 public static class NoemaBootstrap
 {
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-    private static void Init() => NoemaConfig.ProjectAssemblyPrefix = "MyGame";
+    private static void Init()
+    {
+        NoemaConfig.ProjectAssemblyPrefix = "MyGame";
+        // 設定画面など別アセンブリに切り出した自作 UI も ID の供給源にするなら追加する
+        NoemaConfig.AdditionalAssemblyPrefixes = new[] { "MyCompany.Settings" };
+    }
 }
 
 // EditMode テスト (アセンブリ全体で一度)
@@ -68,6 +73,20 @@ public sealed class ReportView : MonoBehaviour
 
 読む範囲は `[SerializeField]` と `[UiNodeSource]` の 2 つだけ (暗黙の型推定はしない)。`Dictionary<string, GameObject/Component>` はキーが、List/配列は index が ID になる。
 
+コレクションの要素が View 自身のとき、その View のフィールドの ID は親の要素 ID から合成される。同じ型の View が並ぶ手札のような UI でも ID が衝突しない:
+
+```csharp
+public sealed class HandView : MonoBehaviour
+{
+    [UiNodeSource] private readonly List<CardView> _cards = new();   // "HandView/cards[2]"
+}
+
+public sealed class CardView : MonoBehaviour
+{
+    [SerializeField] private Button button;                         // "HandView/cards[2]/button"
+}
+```
+
 ### 5. 操作 API
 
 ```csharp
@@ -80,6 +99,44 @@ UiActions.Scroll(node, 0f, 1f);         // ScrollRect 正規化位置 (y=1 が�
 
 戻り値はすべて `Success` / `Message` を持つ。失敗理由 (`not interactable` 等) をそのままアサートメッセージに使える。
 
+ポインタ以外の操作と観測:
+
+```csharp
+UiPointer.Hover(node);                  // Raycast の最前面から祖先へ enter を送る (ツールチップ等)
+UiPointer.Unhover();
+UiPointer.Submit(node);                 // 選択してから submit (ゲームパッド決定相当)
+UiPointer.Probe(node);                  // クリックせずに、いま届くかだけを判定
+node.Focused;                           // EventSystem の選択中要素か
+node.PlainText;                         // リッチテキストタグ (<sprite> 等) を除いた表示文字
+UiQuery.DescribeNotFound(id);           // 近い ID を候補に挙げた失敗メッセージ
+```
+
+### 5.5 ワールド要素 — `IUiNodeProvider`
+
+タイルマップのマスのように uGUI でない操作対象は、プロバイダがノードとして供給する。操作は EventSystem を通らず、
+Input System に仮想マウスを追加して状態イベントを流す (`UiWorldPointer`)。ゲームが読む入力アクションの配線まで含めて検証される:
+
+```csharp
+public sealed class MapNodeProvider : MonoBehaviour, IUiNodeProvider
+{
+    private void OnEnable() => UiNodeProviders.Register(this);
+    private void OnDisable() => UiNodeProviders.Unregister(this);
+
+    public void Collect(List<UiNode> nodes)
+    {
+        foreach (var tile in _tiles)
+            nodes.Add(new UiNode(UiRole.Clickable, $"Map/tile[{tile.x},{tile.y}]", "", visible: true, interactable: true, ScreenRectOf(tile), this, this));
+    }
+
+    // その座標を実入力したとき本当にこのマスが拾われるか (手前の地形に遮られていないか) を返す
+    public string Probe(UiNode node, Vector2 screenPosition) => PickTile(screenPosition) == TileOf(node) ? null : "occluded";
+}
+
+await UiWorldPointer.ClickAsync(UiQuery.FindById("Map/tile[3,4]"));
+```
+
+操作中は実マウスを無効化する (位置が Value 型アクションの場合、複数デバイスでは値の大きい側が勝つため)。`HoverAsync` は乗せたままにするので、外すときは `UiWorldPointer.Unhover()` を呼ぶ。
+
 ### 6. ビジュアル回帰
 
 ```csharp
@@ -91,20 +148,25 @@ Assert.AreEqual("OK", message, message);
 - UI カメラ (ScreenSpaceCamera Canvas の worldCamera) を固定 1920x1080 の RenderTexture へ手動描画するため、Game View の解像度・フレーム末イベント・batchmode の描画有無に依存しない
 - 差分時は `outputs/ui-visual/` に actual / diff PNG を吐く。CI ではこのディレクトリをアーティファクト収集する
 - 意図的な見た目変更は `UiVisualRegression.UpdateBaseline(name)` で上書きする
+- 毎回変わる領域 (時計・パーティクル) は `masks` (正規化矩形、左下原点) で比較から外せる
+- 保存先と解像度は `NoemaConfig.VisualBaselineDirectory` / `VisualCaptureWidth` 等で変えられる
 
 ### 7. テストランナーとの繋ぎ方
 
-noema 自体はテストフレームワーク非依存の観測・操作 API 集で、常駐もフックもしない。E2E で使う場合は、プロジェクト側のコマンド基盤 (例: [LiminalPalette](https://github.com/void2610/liminal-palette)) に薄いブリッジを 1 枚置く:
+noema 自体はテストフレームワーク非依存の観測・操作 API 集で、常駐もフックもしない。
+[LiminalPalette](https://github.com/void2610/liminal-palette) が入っているプロジェクトでは、同梱のブリッジ (`NoemaCommands`) が自動で有効になり、次のコマンドが使える:
 
-```csharp
-public sealed class UiDebugCommands
-{
-    [LiminalCommand("Ui/Click")]
-    public string Click(string id) => UiPointer.Click(UiQuery.FindById(id)).ToString();
+| コマンド | 戻り値 |
+|---|---|
+| `Ui/Click` `Ui/Hover` `Ui/Submit` `Ui/Drag` | `clicked: <id>` / `failed: <理由>` |
+| `Ui/Probe` | `ok` / 届かない理由 |
+| `Ui/Exists` `Ui/Visible` `Ui/Interactable` | `true` / `false` |
+| `Ui/Text` | リッチテキストタグを除いた表示文字 |
+| `Ui/Focused` | フォーカス中のノードの ID |
+| `Ui/Count` | ID が prefix で始まる表示中のノード数 |
+| `Ui/Tree` | ツリーのダンプ (ID の確認用) |
+| `Ui/VisualAssert` `Ui/VisualUpdateBaseline` | `OK` / 差分の詳細 |
 
-    [LiminalCommand("Ui/Visible")]
-    public string Visible(string id) => UiQuery.FindById(id)?.Visible.ToString() ?? "NotFound";
-}
-```
+ノードが見つからないときは、近い ID を候補に添えた `node '<id>' not found (候補: ...)` を返す。
 
 演出やロードで UI が未操作可能な瞬間があるため、シナリオ側は「クリックが受理されるまでポーリング」する形にすると flaky にならない (単発実行 + 固定待ちは避ける)。
