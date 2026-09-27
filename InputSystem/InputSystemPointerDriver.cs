@@ -15,6 +15,7 @@ namespace Void2610.Noema
         private const string DEVICE_NAME = "NoemaVirtualMouse";
         // 状態イベントは次の Input System 更新で処理され、それを読む Update / アクションのコールバックはさらに後になる
         private const int FRAMES_PER_STEP = 2;
+        private const float SAME_POSITION_EPSILON = 0.5f;
 
         private static InputSystemPointerDriver _installed;
 
@@ -39,6 +40,12 @@ namespace Void2610.Noema
         public async Awaitable MoveAsync(Vector2 screenPosition, CancellationToken cancellationToken)
         {
             var mouse = Acquire();
+            // 位置の値が変わらないとアクションの performed が出ず、ゲームは直前に実マウスが残した位置を持ち続けるため、同じ位置へは一度ずらしてから戻す
+            if (Vector2.Distance(mouse.position.ReadValue(), screenPosition) < SAME_POSITION_EPSILON)
+            {
+                InputSystem.QueueStateEvent(mouse, new MouseState { position = screenPosition + Vector2.right });
+                await Awaitable.NextFrameAsync(cancellationToken);
+            }
             InputSystem.QueueStateEvent(mouse, new MouseState { position = screenPosition });
             await WaitFramesAsync(cancellationToken);
         }
@@ -94,6 +101,8 @@ namespace Void2610.Noema
             foreach (var device in InputSystem.devices)
             {
                 if (device is not Mouse || device == _mouse || !device.enabled) continue;
+                // 無効化だけでは Value 型アクションに実マウスの位置の大きさが残り、仮想側より大きいと仮想側が無視されるため、位置ごと 0 に戻してから止める
+                InputSystem.ResetDevice(device, alsoResetDontResetControls: true);
                 InputSystem.DisableDevice(device);
                 _disabledMice.Add(device);
             }
