@@ -111,7 +111,17 @@ UiPointer.Probe(node);                  // クリックせずに、いま届く�
 node.Focused;                           // EventSystem の選択中要素か
 node.PlainText;                         // リッチテキストタグ (<sprite> 等) を除いた表示文字
 UiQuery.DescribeNotFound(id);           // 近い ID を候補に挙げた失敗メッセージ
+UiInspect.SpriteName(node);             // Image / SpriteRenderer のスプライト名 (台紙の色差分等)
+UiInspect.ColorHex(node);               // Graphic の色 "RRGGBBAA" (ランプの点灯色等)
+UiInspect.CountItems("SaveView/slots"); // コレクション直下の表示中要素数 (要素の子は数えない)
+await UiStability.IsStableAsync(id, 5); // 矩形と実効 alpha が 5 フレーム動かなければ true (演出の静止待ち)
+await UiLinkPointer.ClickLinkAsync(node, "keyword"); // TMP の <link="keyword"> を実入力で押す
 ```
+
+**テストのためだけの getter を View に足す前に、ここで読めないかを確かめる。** 表示・文字・画像・色・件数・静止はノードから読めるので、
+View に `IsVisible` / `CurrentText` / `ShownCount` / `IsSettled` のような検証用 public を足す必要はない。
+入場演出中などの入力停止は `CanvasGroup` (`interactable` / `blocksRaycasts`) で表すと、カスタムクリック要素も `Interactable=false` になり、
+クリック成功待ちのポーリングがそのまま入力解禁の待ちになる (View に `IsReady` のようなフラグを足さずに済む)。
 
 ### 5.5 ワールド要素 — `IUiNodeProvider`
 
@@ -169,6 +179,11 @@ noema 自体はテストフレームワーク非依存の観測・操作 API 集
 | `Ui/Text` | リッチテキストタグを除いた表示文字 |
 | `Ui/Focused` | フォーカス中のノードの ID |
 | `Ui/Count` | ID が prefix で始まる表示中のノード数 |
+| `Ui/CountItems` | コレクション直下 (`View/field[key]`) の表示中要素数 |
+| `Ui/TextContains` | 表示文字が部分文字列を含むか (`true` / `false`) |
+| `Ui/Sprite` `Ui/Color` | スプライト名 / 色 `RRGGBBAA` |
+| `Ui/Stable` | 矩形と実効 alpha が指定フレーム数動かなければ `true` |
+| `Ui/ClickLink` `Ui/ClickLinkWithin` | TMP 内の `<link>` を実入力で押す (Within は prefix 配下からリンクを含む行を探す)。`clicked: <id>#<linkId>` |
 | `Ui/Tree` | ツリーのダンプ (ID の確認用) |
 | `Ui/VisualAssert` `Ui/VisualUpdateBaseline` | `OK` / 差分の詳細 |
 

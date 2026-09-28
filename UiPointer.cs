@@ -62,6 +62,45 @@ namespace Void2610.Noema
             return new ClickResult(true, node.Id);
         }
 
+        /// <summary>point の最前面でクリックを受ける要素が target 自身またはその祖先 / 子孫なら true</summary>
+        internal static bool IsClickHandledBy(Vector2 point, GameObject target)
+        {
+            if (EventSystem.current == null) return false;
+            var eventData = new PointerEventData(EventSystem.current) { position = point };
+            var hits = new List<RaycastResult>();
+            EventSystem.current.RaycastAll(eventData, hits);
+            if (hits.Count == 0) return false;
+            var handler = ExecuteEvents.GetEventHandler<IPointerClickHandler>(hits[0].gameObject);
+            return handler != null && IsRelated(handler, target);
+        }
+
+        /// <summary>
+        /// スクリーン座標 point を実 Raycast で押す。押し先は point の最前面にあるクリック要素 (人がそこを押したときと同じ)。
+        /// 文字列内のリンクのように、ノード自身ではなく手前の要素がクリックを受けて位置で判定する UI 向け
+        /// </summary>
+        internal static ClickResult ClickAtScreenPoint(Vector2 point, string label)
+        {
+            if (EventSystem.current == null) return new ClickResult(false, "no EventSystem");
+            var eventData = new PointerEventData(EventSystem.current)
+            {
+                position = point,
+                pressPosition = point,
+                button = PointerEventData.InputButton.Left,
+            };
+            var hits = new List<RaycastResult>();
+            EventSystem.current.RaycastAll(eventData, hits);
+            if (hits.Count == 0) return new ClickResult(false, $"no raycast hit at {point}");
+            var topHit = hits[0];
+            var handler = ExecuteEvents.GetEventHandler<IPointerClickHandler>(topHit.gameObject);
+            if (handler == null) return new ClickResult(false, $"blocked by non-clickable '{HierarchyName(topHit.gameObject)}'");
+            eventData.pointerPressRaycast = topHit;
+            eventData.pointerCurrentRaycast = topHit;
+            eventData.pointerPress = ExecuteEvents.ExecuteHierarchy(topHit.gameObject, eventData, ExecuteEvents.pointerDownHandler);
+            ExecuteEvents.ExecuteHierarchy(topHit.gameObject, eventData, ExecuteEvents.pointerUpHandler);
+            ExecuteEvents.Execute(handler, eventData, ExecuteEvents.pointerClickHandler);
+            return new ClickResult(true, label);
+        }
+
         /// <summary>
         /// node の中心へポインタを乗せる。EventSystem と同じく、Raycast の最前面から祖先へ向かって enter を送る
         /// (カードのホバー拡大とその親の並べ直しのように、祖先側も enter を受ける実装を再現するため)
@@ -135,6 +174,7 @@ namespace Void2610.Noema
             if (to == null) return new ClickResult(false, "drop target not found");
             if (from.IsWorld || to.IsWorld) return new ClickResult(false, "ワールド要素のドラッグには未対応");
             if (EventSystem.current == null) return new ClickResult(false, "no EventSystem");
+            if (from.Role == UiRole.Draggable && !from.Interactable) return new ClickResult(false, $"'{from.Id}' is not interactable");
 
             var startPosition = from.ScreenBounds.center;
             var endPosition = to.ScreenBounds.center;
@@ -164,6 +204,12 @@ namespace Void2610.Noema
             eventData.pointerDrag = dragHandler;
             ExecuteEvents.ExecuteHierarchy(topHit.gameObject, eventData, ExecuteEvents.pointerDownHandler);
             ExecuteEvents.Execute(dragHandler, eventData, ExecuteEvents.beginDragHandler);
+            // 実 EventSystem と同じく、OnBeginDrag が pointerDrag を外したら掴めなかった (取り出せない要素等) として打ち切る
+            if (eventData.pointerDrag == null)
+            {
+                ExecuteEvents.ExecuteHierarchy(topHit.gameObject, eventData, ExecuteEvents.pointerUpHandler);
+                return new ClickResult(false, $"drag refused by '{from.Id}' (OnBeginDrag が pointerDrag を解除)");
+            }
 
             // 中間 3 点 + 終点で drag を発火 (1 点だけだと途中経過依存の実装を検出できない)
             for (var step = 1; step <= 4; step++)
@@ -180,10 +226,11 @@ namespace Void2610.Noema
             {
                 eventData.pointerCurrentRaycast = hits[0];
                 var dropHandler = ExecuteEvents.GetEventHandler<IDropHandler>(hits[0].gameObject);
+                // 指定した受け皿以外 (手前の別要素) に落ちたら、その要素へは届けても成功扱いにしない
                 if (dropHandler != null)
                 {
                     ExecuteEvents.Execute(dropHandler, eventData, ExecuteEvents.dropHandler);
-                    dropExecuted = true;
+                    dropExecuted = IsRelated(dropHandler, to.GameObject);
                 }
             }
             ExecuteEvents.ExecuteHierarchy(topHit.gameObject, eventData, ExecuteEvents.pointerUpHandler);
@@ -191,7 +238,7 @@ namespace Void2610.Noema
 
             return dropExecuted
                 ? new ClickResult(true, $"{from.Id} -> {to.Id}")
-                : new ClickResult(false, $"no drop handler under {endPosition} ('{to.Id}' が IDropHandler を持たないか遮蔽されている)");
+                : new ClickResult(false, $"drop did not reach '{to.Id}' at {endPosition} (IDropHandler を持たないか、手前の要素に遮蔽されている)");
         }
 
         // 矩形の内側を格子状に試す分割数 (中心で届かないときだけ使う)
@@ -210,6 +257,8 @@ namespace Void2610.Noema
             if (EventSystem.current == null) return new ClickResult(false, "no EventSystem");
             // 無効化ボタンへのクリックは Unity 側で無視されるため、成功待ちポーリングが入力解禁ゲートになるよう明示的に失敗させる (非 Selectable は祖先ハンドラ経路のため対象外)
             if (requireInteractable && node.Target is UnityEngine.UI.Selectable selectable && !selectable.IsInteractable()) return new ClickResult(false, $"'{node.Id}' is not interactable");
+            // カスタムクリック要素も CanvasGroup で入力を止めている間は失敗させ、成功待ちのポーリングを入力解禁ゲートにする
+            if (requireInteractable && node.Role == UiRole.Clickable && !node.Interactable) return new ClickResult(false, $"'{node.Id}' is not interactable");
 
             // Editor 非フォーカス時の Screen.width は Game View と一致しないため、判定基準は所属 Canvas の描画矩形にする
             var canvas = node.Target.GetComponentInParent<Canvas>();

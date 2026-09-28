@@ -68,17 +68,30 @@ namespace Void2610.Noema
             if (go.TryGetComponent<TMP_Dropdown>(out var dropdown)) return Create(UiRole.Combobox, go, rootCanvas, idMap, dropdown.captionText != null ? dropdown.captionText.text : "", dropdown, dropdown.IsInteractable());
             if (go.TryGetComponent<ScrollRect>(out var scroll)) return Create(UiRole.ScrollArea, go, rootCanvas, idMap, "", scroll, scroll.enabled);
             // 標準 Selectable でないカスタムクリック要素 (カード等)。プロジェクトの実装のみ対象にしてライブラリ内部を拾わない
-            if (TryGetProjectClickHandler(go, out var clickable)) return Create(UiRole.Clickable, go, rootCanvas, idMap, LabelOf(go), clickable, clickable is Behaviour { isActiveAndEnabled: true });
+            if (TryGetProjectClickHandler(go, out var clickable)) return Create(UiRole.Clickable, go, rootCanvas, idMap, LabelOf(go), clickable, IsCustomInteractable(clickable));
             // カスタムドラッグ要素 (D&D チップ等)。クリックハンドラを持つ要素は Clickable 優先で上に拾われる
-            if (TryGetProjectHandler<UnityEngine.EventSystems.IBeginDragHandler>(go, out var draggable)) return Create(UiRole.Draggable, go, rootCanvas, idMap, LabelOf(go), draggable, draggable is Behaviour { isActiveAndEnabled: true });
+            if (TryGetProjectHandler<UnityEngine.EventSystems.IBeginDragHandler>(go, out var draggable)) return Create(UiRole.Draggable, go, rootCanvas, idMap, LabelOf(go), draggable, IsCustomInteractable(draggable));
             // ドロップ受け要素 (D&D の受け皿)。UiPointer.Drag の to 引数として引けるようノード化する
-            if (TryGetProjectHandler<UnityEngine.EventSystems.IDropHandler>(go, out var dropTarget)) return Create(UiRole.DropTarget, go, rootCanvas, idMap, LabelOf(go), dropTarget, dropTarget is Behaviour { isActiveAndEnabled: true });
+            if (TryGetProjectHandler<UnityEngine.EventSystems.IDropHandler>(go, out var dropTarget)) return Create(UiRole.DropTarget, go, rootCanvas, idMap, LabelOf(go), dropTarget, IsCustomInteractable(dropTarget));
             // 対話要素の内側のラベルはノード化しない (ボタンの Text 側に集約される)。
             // ただし View が名指しで握っている文字は、フォーカス用の Selectable の配下にあっても独立した表示として扱う
             if (go.TryGetComponent<TMP_Text>(out var text) && (idMap.ContainsKey(go) || go.GetComponentInParent<Selectable>() == null)) return Create(UiRole.Text, go, rootCanvas, idMap, text.text, text, false);
             // 役割を持たない要素でも View が名指しで握っているなら、表示状態を観測できるようにする (階層パス由来の要素は増やさない)
             if (idMap.ContainsKey(go) && go.transform is RectTransform rectTransform) return Create(UiRole.Element, go, rootCanvas, idMap, "", rectTransform, false);
             return null;
+        }
+
+        // Selectable でないカスタム要素は、コンポーネントが有効かつ祖先 CanvasGroup が操作もレイキャストも通すときだけ操作可能とみなす
+        // (入場演出中に CanvasGroup で入力を止める実装を、クリック成功待ちのポーリングで待てるようにするため)
+        private static bool IsCustomInteractable(Component component)
+        {
+            if (component is not Behaviour { isActiveAndEnabled: true }) return false;
+            foreach (var group in component.GetComponentsInParent<CanvasGroup>())
+            {
+                if (!group.interactable || !group.blocksRaycasts) return false;
+                if (group.ignoreParentGroups) break;
+            }
+            return true;
         }
 
         private static bool TryGetProjectClickHandler(GameObject go, out Component clickable) =>

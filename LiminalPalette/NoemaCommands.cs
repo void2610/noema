@@ -119,6 +119,46 @@ namespace Void2610.Noema
         public static string Count(string prefix) =>
             UiQuery.FindByIdPrefix(prefix).Count(n => n.Visible).ToString(CultureInfo.InvariantCulture);
 
+        [LiminalCommand("Ui/CountItems", Description = "コレクションフィールド (\"View/field\") の直下の要素 (\"View/field[key]\") のうち表示中の数。要素の子は数えない")]
+        public static string CountItems(string collectionId) => UiInspect.CountItems(collectionId).ToString(CultureInfo.InvariantCulture);
+
+        [LiminalCommand("Ui/TextContains", Description = "ID のノードの表示文字 (タグ除去後) が text を含むか (\"true\" / \"false\")")]
+        public static string TextContains(string id, string text)
+        {
+            var node = UiQuery.FindById(id);
+            if (node == null) return UiQuery.DescribeNotFound(id);
+            return node.PlainText.Contains(text) ? TRUE : FALSE;
+        }
+
+        [LiminalCommand("Ui/Sprite", Description = "ID のノードの Image / SpriteRenderer のスプライト名 (無ければ空文字)")]
+        public static string Sprite(string id)
+        {
+            var node = UiQuery.FindById(id);
+            return node == null ? UiQuery.DescribeNotFound(id) : UiInspect.SpriteName(node);
+        }
+
+        [LiminalCommand("Ui/Color", Description = "ID のノードの Graphic / SpriteRenderer の色 (\"RRGGBBAA\")")]
+        public static string Color(string id)
+        {
+            var node = UiQuery.FindById(id);
+            return node == null ? UiQuery.DescribeNotFound(id) : UiInspect.ColorHex(node);
+        }
+
+        [LiminalCommand("Ui/Stable", Description = "ID のノードの位置と実効 alpha が frames フレーム連続で変わらなければ \"true\" (演出の静止待ち)")]
+        public static async Task<string> Stable(string id, int frames = 5) => await UiStability.IsStableAsync(id, frames) ? TRUE : FALSE;
+
+        [LiminalCommand("Ui/ClickLink", Description = "ID のテキスト内の <link=linkId> を実入力で押す。成功で \"clicked: <id>#<linkId>\"")]
+        public static async Task<string> ClickLink(string id, string linkId)
+        {
+            var node = UiQuery.FindById(id);
+            if (node == null) return UiQuery.DescribeNotFound(id);
+            return (await UiLinkPointer.ClickLinkAsync(node, linkId)).ToString();
+        }
+
+        [LiminalCommand("Ui/ClickLinkWithin", Description = "ID が prefix で始まる表示中ノードのうち <link=linkId> を含む最初のテキストのリンクを実入力で押す (行が実行時に並ぶ一覧向け)。成功で \"clicked: <prefix>#<linkId>\"")]
+        public static async Task<string> ClickLinkWithin(string prefix, string linkId) =>
+            (await UiLinkPointer.ClickLinkWithinAsync(prefix, linkId)).ToString();
+
         [LiminalCommand("Ui/Tree", Description = "セマンティックツリーを 1 行 1 ノードで返す (ID の確認用)。filter は ID の部分一致")]
         public static string Tree(string filter = "", bool visibleOnly = true)
         {

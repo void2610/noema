@@ -55,5 +55,23 @@ namespace Void2610.Noema.Tests
             var node = UiTreeBuilder.Build().FirstOrDefault(n => n.GameObject == go);
             Assert.That(node.Role, Is.EqualTo(UiRole.Button));
         }
+
+        [Test]
+        public void 祖先CanvasGroupが入力を止めている間はClickableを操作不可とみなす()
+        {
+            var go = NewUnderCanvas(out var canvasGo);
+            go.AddComponent<FakeCard>();
+            var group = canvasGo.AddComponent<CanvasGroup>();
+
+            group.blocksRaycasts = false;
+            Assert.That(UiTreeBuilder.Build().First(n => n.GameObject == go).Interactable, Is.False, "blocksRaycasts=false");
+
+            group.blocksRaycasts = true;
+            group.interactable = false;
+            Assert.That(UiTreeBuilder.Build().First(n => n.GameObject == go).Interactable, Is.False, "interactable=false");
+
+            group.interactable = true;
+            Assert.That(UiTreeBuilder.Build().First(n => n.GameObject == go).Interactable, Is.True);
+        }
     }
 }
