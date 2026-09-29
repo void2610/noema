@@ -40,6 +40,13 @@ namespace Void2610.Noema
             return (await UiWorldPointer.DeviceClickAsync(node)).ToString();
         }
 
+        [LiminalCommand("Ui/Navigate", Description = "ゲームパッドの十字キーを direction (Up / Down / Left / Right) へ times 回押して離す (仮想ゲームパッド)。EventSystem ではなく入力デバイスへ流すので、ゲーム側のナビゲーションの配線まで通る。成功で \"navigated: <direction> x<times>\"。動いた先は Ui/Focused で観測する")]
+        public static async Task<string> Navigate(string direction, int times = 1)
+        {
+            var result = await UiNavigation.NavigateAsync(direction, times);
+            return result.Success ? $"navigated: {result.Message}" : $"failed: {result.Message}";
+        }
+
         [LiminalCommand("Ui/ClickWithin", Description = "ID が prefix で始まり表示文字に text を含むノードを実入力経路でクリックする (一覧からカード名等で選ぶ)。成功で \"clicked: <prefix> '<text>'\"")]
         public static async Task<string> ClickWithin(string prefix, string text)
         {
