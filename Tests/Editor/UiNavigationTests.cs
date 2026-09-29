@@ -62,5 +62,51 @@ namespace Void2610.Noema.Tests
             Assert.That(result.Success, Is.False);
             StringAssert.Contains("IUiNavigationDriver", result.Message);
         }
+
+        [TestCase("South", UiPadButton.South)]
+        [TestCase("east", UiPadButton.East)]
+        [TestCase(" leftshoulder ", UiPadButton.LeftShoulder)]
+        [TestCase("Start", UiPadButton.Start)]
+        public void ボタン名は大文字小文字と前後の空白を問わず解釈する(string text, UiPadButton expected)
+        {
+            Assert.That(UiNavigation.TryParseButton(text, out var parsed), Is.True);
+            Assert.That(parsed, Is.EqualTo(expected));
+        }
+
+        [TestCase("")]
+        [TestCase("A")]
+        [TestCase("0")]
+        [TestCase("-1")]
+        [TestCase(null)]
+        public void ボタン名でない文字列は受け付けない(string text)
+        {
+            Assert.That(UiNavigation.TryParseButton(text, out _), Is.False);
+        }
+
+        [Test]
+        public void ボタン名が不正なら押さずに失敗を返す()
+        {
+            var result = UiNavigation.PressAsync("A").GetAwaiter().GetResult();
+
+            Assert.That(result.Success, Is.False);
+            StringAssert.Contains("South", result.Message);
+        }
+
+        [Test]
+        public void ボタンの回数が1未満なら押さずに失敗を返す()
+        {
+            var result = UiNavigation.PressAsync("South", 0).GetAwaiter().GetResult();
+
+            Assert.That(result.Success, Is.False);
+        }
+
+        [Test]
+        public void ボタンを押せるドライバが無ければ失敗を返す()
+        {
+            var result = UiNavigation.PressAsync("South").GetAwaiter().GetResult();
+
+            Assert.That(result.Success, Is.False);
+            StringAssert.Contains("IUiPadButtonDriver", result.Message);
+        }
     }
 }
