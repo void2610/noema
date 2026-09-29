@@ -1,4 +1,6 @@
+using System.Threading;
 using NUnit.Framework;
+using UnityEngine;
 
 namespace Void2610.Noema.Tests
 {
@@ -107,6 +109,55 @@ namespace Void2610.Noema.Tests
 
             Assert.That(result.Success, Is.False);
             StringAssert.Contains("IUiPadButtonDriver", result.Message);
+        }
+
+        [Test]
+        public void キーの回数が1未満なら押さずに失敗を返す()
+        {
+            var result = UiNavigation.PressKeyAsync("Escape", 0).GetAwaiter().GetResult();
+
+            Assert.That(result.Success, Is.False);
+        }
+
+        [Test]
+        public void キーを押せるドライバが無ければ失敗を返す()
+        {
+            var result = UiNavigation.PressKeyAsync("Escape").GetAwaiter().GetResult();
+
+            Assert.That(result.Success, Is.False);
+            StringAssert.Contains("IUiKeyDriver", result.Message);
+        }
+
+        [Test]
+        public void ドライバが解釈できないキー名なら押さずに失敗を返す()
+        {
+            var driver = new RecordingKeyDriver();
+            UiNavigation.Driver = driver;
+
+            var result = UiNavigation.PressKeyAsync("NoSuchKey").GetAwaiter().GetResult();
+
+            Assert.That(result.Success, Is.False);
+            StringAssert.Contains("NoSuchKey", result.Message);
+            Assert.That(driver.Pressed, Is.Zero);
+        }
+
+        private sealed class RecordingKeyDriver : IUiNavigationDriver, IUiKeyDriver
+        {
+            public int Pressed;
+
+            public Awaitable PressAsync(UiNavigateDirection direction, CancellationToken cancellationToken) => throw new System.NotSupportedException();
+
+            public void Release()
+            {
+            }
+
+            public bool IsKnownKey(string key) => key == "Escape";
+
+            public Awaitable PressKeyAsync(string key, CancellationToken cancellationToken)
+            {
+                Pressed++;
+                throw new System.NotSupportedException();
+            }
         }
     }
 }
