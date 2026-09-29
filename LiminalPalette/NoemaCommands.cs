@@ -54,6 +54,13 @@ namespace Void2610.Noema
             return result.Success ? $"pressed: {result.Message}" : $"failed: {result.Message}";
         }
 
+        [LiminalCommand("Ui/PressKey", Description = "キーボードの key (Input System のキー名。Escape / Enter / Tab など) を times 回押して離す (仮想キーボード)。キーボードのデバイスを見て分岐する処理 (ESC でポーズを開く等) まで実入力の経路で届く。成功で \"pressed: <key> x<times>\"")]
+        public static async Task<string> PressKey(string key, int times = 1)
+        {
+            var result = await UiNavigation.PressKeyAsync(key, times);
+            return result.Success ? $"pressed: {result.Message}" : $"failed: {result.Message}";
+        }
+
         [LiminalCommand("Ui/ClickWithin", Description = "ID が prefix で始まり表示文字に text を含むノードを実入力経路でクリックする (一覧からカード名等で選ぶ)。成功で \"clicked: <prefix> '<text>'\"")]
         public static async Task<string> ClickWithin(string prefix, string text)
         {
@@ -156,6 +163,13 @@ namespace Void2610.Noema
         {
             var node = UiQuery.FindById(id);
             return node == null ? UiQuery.DescribeNotFound(id) : UiInspect.ColorHex(node);
+        }
+
+        [LiminalCommand("Ui/Alpha", Description = "ID のノードの実効 alpha (祖先の CanvasGroup と Graphic の色を掛けた値) を小数 2 桁で返す (\"0.00\" 〜 \"1.00\")。フェードの途中と完了を観測する")]
+        public static string Alpha(string id)
+        {
+            var node = UiQuery.FindById(id);
+            return node == null ? UiQuery.DescribeNotFound(id) : UiInspect.EffectiveAlpha(node.GameObject).ToString("0.00", CultureInfo.InvariantCulture);
         }
 
         [LiminalCommand("Ui/Stable", Description = "ID のノードの位置と実効 alpha が frames フレーム連続で変わらなければ \"true\" (演出の静止待ち)")]

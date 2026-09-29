@@ -48,6 +48,18 @@ namespace Void2610.Noema
     }
 
     /// <summary>
+    /// キーボードのキーを実入力デバイス経由で押すドライバ。キー名の解釈はデバイス層が持つ
+    /// </summary>
+    public interface IUiKeyDriver
+    {
+        /// <summary>key がデバイス層で解釈できるキー名か</summary>
+        bool IsKnownKey(string key);
+
+        /// <summary>key を押して離し、ゲーム側が押下と離しを読むまで待つ</summary>
+        Awaitable PressKeyAsync(string key, CancellationToken cancellationToken);
+    }
+
+    /// <summary>
     /// ゲームパッドの十字キーを押す。EventSystem へ Move イベントを直接送らず入力デバイスへ流すため、
     /// ゲーム側のナビゲーション (InputSystemUIInputModule の move や、それを止めて自前で解決するライブラリ) の配線まで含めて検証される。
     /// 選択がどこへ動いたかは <see cref="UiTreeBuilder"/> の Focused (ブリッジの Ui/Focused) で観測する
@@ -89,6 +101,24 @@ namespace Void2610.Noema
                 Driver.Release();
             }
             return new UiPointer.ClickResult(true, $"{parsed} x{times}");
+        }
+
+        /// <summary>キーボードの key (Input System のキー名。"Escape" / "Enter" / "Tab" など、大文字小文字は問わない) を times 回押して離す</summary>
+        public static async Awaitable<UiPointer.ClickResult> PressKeyAsync(string key, int times = 1, CancellationToken cancellationToken = default)
+        {
+            if (times < 1) return new UiPointer.ClickResult(false, $"times は 1 以上 (指定: {times})");
+            if (Driver is not IUiKeyDriver keyDriver) return new UiPointer.ClickResult(false, "IUiKeyDriver が未設定 (Input System 連携が無効)");
+            if (string.IsNullOrWhiteSpace(key) || !keyDriver.IsKnownKey(key.Trim())) return new UiPointer.ClickResult(false, $"key '{key}' はキー名ではない");
+            var trimmed = key.Trim();
+            try
+            {
+                for (var i = 0; i < times; i++) await keyDriver.PressKeyAsync(trimmed, cancellationToken);
+            }
+            finally
+            {
+                Driver.Release();
+            }
+            return new UiPointer.ClickResult(true, $"{trimmed} x{times}");
         }
 
         /// <summary>ボタン名の文字列を解釈する。数値の文字列 ("2" 等) は受け付けない</summary>
