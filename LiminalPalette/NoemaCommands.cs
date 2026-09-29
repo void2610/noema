@@ -47,6 +47,13 @@ namespace Void2610.Noema
             return result.Success ? $"navigated: {result.Message}" : $"failed: {result.Message}";
         }
 
+        [LiminalCommand("Ui/Press", Description = "ゲームパッドのボタン button (South / East / West / North / LeftShoulder / RightShoulder / Start / Select) を times 回押して離す (仮想ゲームパッド)。決定 (South) や Cancel (East) を、選択中の要素や入力アクションへ実入力の経路で届ける。成功で \"pressed: <button> x<times>\"")]
+        public static async Task<string> Press(string button, int times = 1)
+        {
+            var result = await UiNavigation.PressAsync(button, times);
+            return result.Success ? $"pressed: {result.Message}" : $"failed: {result.Message}";
+        }
+
         [LiminalCommand("Ui/ClickWithin", Description = "ID が prefix で始まり表示文字に text を含むノードを実入力経路でクリックする (一覧からカード名等で選ぶ)。成功で \"clicked: <prefix> '<text>'\"")]
         public static async Task<string> ClickWithin(string prefix, string text)
         {
