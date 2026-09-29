@@ -7,6 +7,8 @@
 - LiminalPalette コマンド `Ui/Navigate`
 - `UiNavigation.PressAsync` / `IUiPadButtonDriver` / `UiPadButton`: 仮想ゲームパッドのボタン (決定の South、Cancel の East など) を実入力の経路で押す。Graphic を持たない要素 (仮想カーソルのアンカーなど) の決定や、入力アクションを購読する Cancel まで検証できる
 - LiminalPalette コマンド `Ui/Press`
+- `UiNavigation.PressKeyAsync` / `IUiKeyDriver`: 仮想キーボードのキーを実入力の経路で押す。キーボードのデバイスを見て分岐する処理 (ESC でポーズを開く等) まで検証できる
+- LiminalPalette コマンド `Ui/PressKey` `Ui/Alpha` (実効 alpha を小数 2 桁で返し、フェードの途中と完了を観測する)
 
 ### Changed
 - 仮想マウスと仮想ゲームパッドが入力の設定 (バックグラウンドの扱い・Game View への回し方) を共有し、両方が操作を終えたときに元へ戻すようになった

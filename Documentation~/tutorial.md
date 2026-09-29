@@ -176,8 +176,10 @@ noema 自体はテストフレームワーク非依存の観測・操作 API 集
 | `Ui/DeviceClick` | 見えている点を仮想マウスで押す (入力アクションを購読する UI 向け) |
 | `Ui/Navigate` | ゲームパッドの十字キーを仮想ゲームパッドで押して離す (`direction`, `times`)。`navigated: <direction> x<times>`。動いた先は `Ui/Focused` で観測する |
 | `Ui/Press` | ゲームパッドのボタン (`South` `East` `West` `North` `LeftShoulder` `RightShoulder` `Start` `Select`) を仮想ゲームパッドで押して離す (`button`, `times`)。`pressed: <button> x<times>` |
+| `Ui/PressKey` | キーボードのキー (`Escape` `Enter` `Tab` など Input System のキー名) を仮想キーボードで押して離す (`key`, `times`)。`pressed: <key> x<times>` |
 | `Ui/Probe` | `ok` / 届かない理由 |
 | `Ui/Exists` `Ui/Visible` `Ui/Interactable` | `true` / `false` |
+| `Ui/Alpha` | 実効 alpha を小数 2 桁で (`0.00` 〜 `1.00`)。フェードの途中と完了を見る |
 | `Ui/Text` | リッチテキストタグを除いた表示文字 |
 | `Ui/Focused` | フォーカス中のノードの ID |
 | `Ui/Count` | ID が prefix で始まる表示中のノード数 |
