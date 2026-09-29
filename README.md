@@ -12,6 +12,7 @@ Unity uGUI のセマンティック UI テストライブラリ。UI を座標�
 - **操作**: Slider/Textbox/Toggle/Dropdown/ScrollRect への意味的操作 (`UiActions`)
 - **ホバー / Submit / 到達判定**: ポインタを乗せる (`UiPointer.Hover`)、ゲームパッド決定相当 (`UiPointer.Submit`)、クリックせずに届くかだけを見る (`UiPointer.Probe`)
 - **ワールド要素**: タイルマップのマス等を `IUiNodeProvider` でツリーへ供給し、Input System の仮想マウスで実入力経路から操作 (`UiWorldPointer`)
+- **方向入力**: Input System の仮想ゲームパッドで十字キーを押し、ゲーム側のナビゲーションの配線ごと検証する (`UiNavigation`)
 - **ビジュアル回帰**: UI カメラの固定解像度 RenderTexture 描画によるベースライン PNG 比較。batchmode CI 対応・Game View 解像度非依存・マスク領域指定 (`UiVisualRegression`)
 - **見た目・件数・静止の観測**: スプライト名 / 色 (`UiInspect`)、コレクションの要素数 (`UiInspect.CountItems`)、演出の静止待ち (`UiStability`)
 - **文字列内リンク**: TMP の `<link>` を位置判定込みで実入力クリック (`UiLinkPointer`)
@@ -27,7 +28,7 @@ Package Manager の "Add package from git URL"、または `Packages/manifest.js
 
 - 本体 asmdef (`Void2610.Noema`) は `UNITY_EDITOR || DEVELOPMENT_BUILD || NOEMA_FORCE_ENABLE` の開発ビルド限定
 - `Void2610.Noema.Abstractions` (`[UiNodeSource]` のみ) は常時コンパイルで、View 側の宣言が製品ビルドを壊さない
-- `Void2610.Noema.InputSystem` (仮想マウス) は Input System パッケージ、`Void2610.Noema.LiminalPalette` (コマンドブリッジ) は LiminalPalette パッケージがあるときだけ有効になる
+- `Void2610.Noema.InputSystem` (仮想マウス・仮想ゲームパッド) は Input System パッケージ、`Void2610.Noema.LiminalPalette` (コマンドブリッジ) は LiminalPalette パッケージがあるときだけ有効になる
 
 ## チュートリアル
 
