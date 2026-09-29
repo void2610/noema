@@ -5,6 +5,8 @@
 ### Added
 - `UiNavigation.NavigateAsync` / `IUiNavigationDriver` / `InputSystemNavigationDriver`: 仮想ゲームパッドの十字キーを実入力の経路で押す。EventSystem の move を止めて自前でナビゲーションを解決するライブラリ (arinn など) でも、ゲーム側の配線まで含めて検証できる
 - LiminalPalette コマンド `Ui/Navigate`
+- `UiNavigation.PressAsync` / `IUiPadButtonDriver` / `UiPadButton`: 仮想ゲームパッドのボタン (決定の South、Cancel の East など) を実入力の経路で押す。Graphic を持たない要素 (仮想カーソルのアンカーなど) の決定や、入力アクションを購読する Cancel まで検証できる
+- LiminalPalette コマンド `Ui/Press`
 
 ### Changed
 - 仮想マウスと仮想ゲームパッドが入力の設定 (バックグラウンドの扱い・Game View への回し方) を共有し、両方が操作を終えたときに元へ戻すようになった
