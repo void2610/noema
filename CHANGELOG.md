@@ -11,6 +11,8 @@
 - LiminalPalette コマンド `Ui/PressKey` `Ui/Alpha` (実効 alpha を小数 2 桁で返し、フェードの途中と完了を観測する)
 - `UiNavigation.HoldButtonAsync` / `ReleaseButtonAsync` / `IUiPadHoldDriver`: 仮想ゲームパッドのボタンを押したままにし、その間の十字キーやボタンの押下を同時押しとして届ける (LB を押しながらの十字キーなど)
 - LiminalPalette コマンド `Ui/PadHold` `Ui/PadRelease`
+- `UiWorldPointer.DeviceHoverAsync`: uGUI の要素の上へ仮想マウスを動かして乗せたままにする (押せる要素は実 Raycast で届く点、届かなければ矩形の中心)。ポインタの位置を入力デバイスから読むホバー選択 (arinn など) を検証できる
+- LiminalPalette コマンド `Ui/DeviceHover`、`Ui/Reachable` (`Ui/Probe` の真偽版)
 
 ### Changed
 - 仮想マウスと仮想ゲームパッドが入力の設定 (バックグラウンドの扱い・Game View への回し方) を共有し、両方が操作を終えたときに元へ戻すようになった

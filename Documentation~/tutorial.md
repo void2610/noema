@@ -174,11 +174,13 @@ noema 自体はテストフレームワーク非依存の観測・操作 API 集
 | `Ui/Click` `Ui/Hover` `Ui/Submit` `Ui/Drag` | `clicked: <id>` / `failed: <理由>` |
 | `Ui/ClickWithin` `Ui/IdWithin` | ID の接頭辞と表示文字で一覧の 1 件を選ぶ (カード名で選ぶ等) |
 | `Ui/DeviceClick` | 見えている点を仮想マウスで押す (入力アクションを購読する UI 向け) |
+| `Ui/DeviceHover` | 仮想マウスを乗せたままにする。押せる要素は実 Raycast で届く点、届かなければ矩形の中心へ動かす (ポインタの位置をデバイスから読むホバー選択の検証用)。外すのは `Ui/Unhover` |
 | `Ui/Navigate` | ゲームパッドの十字キーを仮想ゲームパッドで押して離す (`direction`, `times`)。`navigated: <direction> x<times>`。動いた先は `Ui/Focused` で観測する |
 | `Ui/Press` | ゲームパッドのボタン (`South` `East` `West` `North` `LeftShoulder` `RightShoulder` `Start` `Select`) を仮想ゲームパッドで押して離す (`button`, `times`)。`pressed: <button> x<times>` |
 | `Ui/PadHold` `Ui/PadRelease` | ゲームパッドのボタンを押したままにする / 離す (`button`)。押している間の `Ui/Navigate` と `Ui/Press` は同時押しとして届く。`holding: <button>` / `released: <button>` |
 | `Ui/PressKey` | キーボードのキー (`Escape` `Enter` `Tab` など Input System のキー名) を仮想キーボードで押して離す (`key`, `times`)。`pressed: <key> x<times>` |
 | `Ui/Probe` | `ok` / 届かない理由 |
+| `Ui/Reachable` | `true` / `false` (`Ui/Probe` の真偽版。スクロールで外へ出た・遮られたを期待値比較で待つ) |
 | `Ui/Exists` `Ui/Visible` `Ui/Interactable` | `true` / `false` |
 | `Ui/Alpha` | 実効 alpha を小数 2 桁で (`0.00` 〜 `1.00`)。フェードの途中と完了を見る |
 | `Ui/Text` | リッチテキストタグを除いた表示文字 |
