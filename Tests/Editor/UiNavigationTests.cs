@@ -141,6 +141,26 @@ namespace Void2610.Noema.Tests
             Assert.That(driver.Pressed, Is.Zero);
         }
 
+        [Test]
+        public void 押したままにするボタン名が不正なら失敗を返す()
+        {
+            var result = UiNavigation.HoldButtonAsync("A").GetAwaiter().GetResult();
+
+            Assert.That(result.Success, Is.False);
+            StringAssert.Contains("LeftShoulder", result.Message);
+        }
+
+        [Test]
+        public void ボタンを押したままにできるドライバが無ければ失敗を返す()
+        {
+            var hold = UiNavigation.HoldButtonAsync("LeftShoulder").GetAwaiter().GetResult();
+            var release = UiNavigation.ReleaseButtonAsync("LeftShoulder").GetAwaiter().GetResult();
+
+            Assert.That(hold.Success, Is.False);
+            StringAssert.Contains("IUiPadHoldDriver", hold.Message);
+            Assert.That(release.Success, Is.False);
+        }
+
         private sealed class RecordingKeyDriver : IUiNavigationDriver, IUiKeyDriver
         {
             public int Pressed;
