@@ -176,6 +176,7 @@ noema 自体はテストフレームワーク非依存の観測・操作 API 集
 | `Ui/DeviceClick` | 見えている点を仮想マウスで押す (入力アクションを購読する UI 向け) |
 | `Ui/Navigate` | ゲームパッドの十字キーを仮想ゲームパッドで押して離す (`direction`, `times`)。`navigated: <direction> x<times>`。動いた先は `Ui/Focused` で観測する |
 | `Ui/Press` | ゲームパッドのボタン (`South` `East` `West` `North` `LeftShoulder` `RightShoulder` `Start` `Select`) を仮想ゲームパッドで押して離す (`button`, `times`)。`pressed: <button> x<times>` |
+| `Ui/PadHold` `Ui/PadRelease` | ゲームパッドのボタンを押したままにする / 離す (`button`)。押している間の `Ui/Navigate` と `Ui/Press` は同時押しとして届く。`holding: <button>` / `released: <button>` |
 | `Ui/PressKey` | キーボードのキー (`Escape` `Enter` `Tab` など Input System のキー名) を仮想キーボードで押して離す (`key`, `times`)。`pressed: <key> x<times>` |
 | `Ui/Probe` | `ok` / 届かない理由 |
 | `Ui/Exists` `Ui/Visible` `Ui/Interactable` | `true` / `false` |
