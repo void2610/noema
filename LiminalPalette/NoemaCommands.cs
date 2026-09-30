@@ -40,6 +40,15 @@ namespace Void2610.Noema
             return (await UiWorldPointer.DeviceClickAsync(node)).ToString();
         }
 
+        [LiminalCommand("Ui/DeviceHover", Description = "ID のノードの上へ入力デバイス (仮想マウス) を動かして乗せたままにする。押せる要素は実 Raycast で届く点へ、届く点が無ければ矩形の中心へ動かす。ポインタの位置をデバイスから読むホバー選択の操作用。外すのは Ui/Unhover。成功で \"hovered: <id>\"")]
+        public static async Task<string> DeviceHover(string id)
+        {
+            var node = UiQuery.FindById(id);
+            if (node == null) return UiQuery.DescribeNotFound(id);
+            var result = await UiWorldPointer.DeviceHoverAsync(node);
+            return result.Success ? $"hovered: {result.Message}" : $"failed: {result.Message}";
+        }
+
         [LiminalCommand("Ui/Navigate", Description = "ゲームパッドの十字キーを direction (Up / Down / Left / Right) へ times 回押して離す (仮想ゲームパッド)。EventSystem ではなく入力デバイスへ流すので、ゲーム側のナビゲーションの配線まで通る。成功で \"navigated: <direction> x<times>\"。動いた先は Ui/Focused で観測する")]
         public static async Task<string> Navigate(string direction, int times = 1)
         {
@@ -95,6 +104,14 @@ namespace Void2610.Noema
             if (node == null) return UiQuery.DescribeNotFound(id);
             var result = UiPointer.Probe(node);
             return result.Success ? "ok" : result.Message;
+        }
+
+        [LiminalCommand("Ui/Reachable", Description = "いまクリックしたら届くか (\"true\" / \"false\")。Ui/Probe の真偽版で、スクロールでビューポートの外へ出たか・遮られたかを期待値比較で待つのに使う")]
+        public static string Reachable(string id)
+        {
+            var node = UiQuery.FindById(id);
+            if (node == null) return UiQuery.DescribeNotFound(id);
+            return UiPointer.Probe(node).Success ? TRUE : FALSE;
         }
 
         [LiminalCommand("Ui/Hover", Description = "ID のノードにポインタを乗せる (ワールド要素は仮想マウスを乗せたままにする)。外すのは Ui/Unhover")]

@@ -135,6 +135,23 @@ namespace Void2610.Noema
             return new UiPointer.ClickResult(false, $"'{node.Id}' kept moving on screen ({MAX_FOLLOW_ATTEMPTS} attempts)");
         }
 
+        /// <summary>
+        /// uGUI の要素でも EventSystem へ直接イベントを送らず、要素の上へ入力デバイス (仮想マウス) を動かして乗せたままにする。
+        /// ポインタの位置を入力デバイスから読むホバー選択 (arinn など) を操作するため。押せる要素は実 Raycast で届く点へ、届く点が無ければ矩形の中心へ動かす (背面へのホバーが無視されることの確認に使う)。外すときは <see cref="Unhover"/>
+        /// </summary>
+        public static async Awaitable<UiPointer.ClickResult> DeviceHoverAsync(UiNode node, CancellationToken cancellationToken = default)
+        {
+            if (node == null) return new UiPointer.ClickResult(false, "node not found");
+            if (node.IsWorld) return await HoverAsync(node, cancellationToken);
+            if (!node.Visible) return new UiPointer.ClickResult(false, $"'{node.Id}' is not visible");
+            if (Driver == null) return new UiPointer.ClickResult(false, "IUiPointerDriver が未設定 (Input System 連携が無効)");
+            var point = node.Role is UiRole.Button or UiRole.Checkbox or UiRole.Clickable && UiPointer.TryFindReachablePoint(node, out var reachable, out _)
+                ? reachable
+                : node.ScreenBounds.center;
+            await Driver.MoveAsync(point, cancellationToken);
+            return new UiPointer.ClickResult(true, node.Id);
+        }
+
         /// <summary>uGUI のホバーを外し、ワールド側で止めていた実ポインタも戻す</summary>
         public static UiPointer.ClickResult Unhover()
         {
