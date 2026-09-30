@@ -48,6 +48,18 @@ namespace Void2610.Noema
     }
 
     /// <summary>
+    /// ボタンを押したままにするドライバ。押している間の十字キーやボタンの押下は、押したままのボタンと重ねて届く
+    /// </summary>
+    public interface IUiPadHoldDriver
+    {
+        /// <summary>button を押したままにし、ゲーム側が押下を読むまで待つ</summary>
+        Awaitable HoldButtonAsync(UiPadButton button, CancellationToken cancellationToken);
+
+        /// <summary>押したままの button を離し、ゲーム側が離しを読むまで待つ。押していなければ何もしない</summary>
+        Awaitable ReleaseButtonAsync(UiPadButton button, CancellationToken cancellationToken);
+    }
+
+    /// <summary>
     /// キーボードのキーを実入力デバイス経由で押すドライバ。キー名の解釈はデバイス層が持つ
     /// </summary>
     public interface IUiKeyDriver
@@ -101,6 +113,24 @@ namespace Void2610.Noema
                 Driver.Release();
             }
             return new UiPointer.ClickResult(true, $"{parsed} x{times}");
+        }
+
+        /// <summary>button を押したままにする。離すのは <see cref="ReleaseButtonAsync"/></summary>
+        public static async Awaitable<UiPointer.ClickResult> HoldButtonAsync(string button, CancellationToken cancellationToken = default)
+        {
+            if (!TryParseButton(button, out var parsed)) return new UiPointer.ClickResult(false, $"button '{button}' は {string.Join(" / ", Enum.GetNames(typeof(UiPadButton)))} のいずれか");
+            if (Driver is not IUiPadHoldDriver holdDriver) return new UiPointer.ClickResult(false, "IUiPadHoldDriver が未設定 (Input System 連携が無効)");
+            await holdDriver.HoldButtonAsync(parsed, cancellationToken);
+            return new UiPointer.ClickResult(true, parsed.ToString());
+        }
+
+        /// <summary>押したままの button を離す</summary>
+        public static async Awaitable<UiPointer.ClickResult> ReleaseButtonAsync(string button, CancellationToken cancellationToken = default)
+        {
+            if (!TryParseButton(button, out var parsed)) return new UiPointer.ClickResult(false, $"button '{button}' は {string.Join(" / ", Enum.GetNames(typeof(UiPadButton)))} のいずれか");
+            if (Driver is not IUiPadHoldDriver holdDriver) return new UiPointer.ClickResult(false, "IUiPadHoldDriver が未設定 (Input System 連携が無効)");
+            await holdDriver.ReleaseButtonAsync(parsed, cancellationToken);
+            return new UiPointer.ClickResult(true, parsed.ToString());
         }
 
         /// <summary>キーボードの key (Input System のキー名。"Escape" / "Enter" / "Tab" など、大文字小文字は問わない) を times 回押して離す</summary>

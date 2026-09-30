@@ -9,7 +9,7 @@ namespace Void2610.Noema
     /// 仮想ゲームパッドと仮想キーボードを追加し、十字キー・ボタン・キーの状態イベントを Input System へ流して実入力と同じ経路でゲームへ届けるドライバ。
     /// 実ゲームパッドは止めない (十字キーは離していれば 0 で、押した仮想側の値が勝つため)
     /// </summary>
-    public sealed class InputSystemNavigationDriver : IUiNavigationDriver, IUiPadButtonDriver, IUiKeyDriver
+    public sealed class InputSystemNavigationDriver : IUiNavigationDriver, IUiPadButtonDriver, IUiPadHoldDriver, IUiKeyDriver
     {
         private const string DEVICE_NAME = "NoemaVirtualGamepad";
         private const string KEYBOARD_DEVICE_NAME = "NoemaVirtualKeyboard";
@@ -18,6 +18,9 @@ namespace Void2610.Noema
 
         private static InputSystemNavigationDriver _installed;
 
+        // 押したままのボタンが残っている間は、コマンドの合間も入力をゲームへ回し続ける (離したときに設定を戻す)
+        private readonly object _holdOwner = new();
+        private readonly System.Collections.Generic.HashSet<GamepadButton> _held = new();
         private Gamepad _gamepad;
         private Keyboard _keyboard;
 
@@ -35,6 +38,26 @@ namespace Void2610.Noema
 
         public Awaitable PressButtonAsync(UiPadButton button, CancellationToken cancellationToken) => PressAsync(ToButton(button), cancellationToken);
 
+        public async Awaitable HoldButtonAsync(UiPadButton button, CancellationToken cancellationToken)
+        {
+            var gamepad = Acquire();
+            GameInputRouting.Acquire(_holdOwner);
+            _held.Add(ToButton(button));
+            InputSystem.QueueStateEvent(gamepad, HeldState());
+            await WaitFramesAsync(cancellationToken);
+            Release();
+        }
+
+        public async Awaitable ReleaseButtonAsync(UiPadButton button, CancellationToken cancellationToken)
+        {
+            if (!_held.Remove(ToButton(button))) return;
+            var gamepad = Acquire();
+            InputSystem.QueueStateEvent(gamepad, HeldState());
+            await WaitFramesAsync(cancellationToken);
+            Release();
+            if (_held.Count == 0) GameInputRouting.Release(_holdOwner);
+        }
+
         // 数値の文字列 ("27" 等) は Key の値として解釈されてしまうため受け付けない
         public bool IsKnownKey(string key) => !char.IsDigit(key[0]) && System.Enum.TryParse<Key>(key, true, out var parsed) && parsed != Key.None && System.Enum.IsDefined(typeof(Key), parsed);
 
@@ -50,10 +73,10 @@ namespace Void2610.Noema
         private async Awaitable PressAsync(GamepadButton button, CancellationToken cancellationToken)
         {
             var gamepad = Acquire();
-            InputSystem.QueueStateEvent(gamepad, new GamepadState().WithButton(button));
+            InputSystem.QueueStateEvent(gamepad, HeldState().WithButton(button));
             await WaitFramesAsync(cancellationToken);
             // 離しを届けないと、次の押下が同じ向きのときに新しい押下として扱われない
-            InputSystem.QueueStateEvent(gamepad, new GamepadState());
+            InputSystem.QueueStateEvent(gamepad, HeldState());
             await WaitFramesAsync(cancellationToken);
         }
 
@@ -68,6 +91,13 @@ namespace Void2610.Noema
             return _gamepad;
         }
 
+        private GamepadState HeldState()
+        {
+            var state = new GamepadState();
+            foreach (var held in _held) state = state.WithButton(held);
+            return state;
+        }
+
         private Keyboard AcquireKeyboard()
         {
             GameInputRouting.Acquire(this);
@@ -80,6 +110,8 @@ namespace Void2610.Noema
         private void Dispose()
         {
             Release();
+            _held.Clear();
+            GameInputRouting.Release(_holdOwner);
             if (_gamepad != null && _gamepad.added) InputSystem.RemoveDevice(_gamepad);
             _gamepad = null;
             if (_keyboard != null && _keyboard.added) InputSystem.RemoveDevice(_keyboard);

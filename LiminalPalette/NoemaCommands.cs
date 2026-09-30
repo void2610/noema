@@ -54,6 +54,20 @@ namespace Void2610.Noema
             return result.Success ? $"pressed: {result.Message}" : $"failed: {result.Message}";
         }
 
+        [LiminalCommand("Ui/PadHold", Description = "ゲームパッドのボタン button を押したままにする (仮想ゲームパッド)。押している間の Ui/Navigate と Ui/Press は、このボタンと同時押しとして届く (LB を押しながらの十字キーなど)。離すのは Ui/PadRelease。成功で \"holding: <button>\"")]
+        public static async Task<string> PadHold(string button)
+        {
+            var result = await UiNavigation.HoldButtonAsync(button);
+            return result.Success ? $"holding: {result.Message}" : $"failed: {result.Message}";
+        }
+
+        [LiminalCommand("Ui/PadRelease", Description = "Ui/PadHold で押したままのボタン button を離す。押していなければ何もしない。成功で \"released: <button>\"")]
+        public static async Task<string> PadRelease(string button)
+        {
+            var result = await UiNavigation.ReleaseButtonAsync(button);
+            return result.Success ? $"released: {result.Message}" : $"failed: {result.Message}";
+        }
+
         [LiminalCommand("Ui/PressKey", Description = "キーボードの key (Input System のキー名。Escape / Enter / Tab など) を times 回押して離す (仮想キーボード)。キーボードのデバイスを見て分岐する処理 (ESC でポーズを開く等) まで実入力の経路で届く。成功で \"pressed: <key> x<times>\"")]
         public static async Task<string> PressKey(string key, int times = 1)
         {
