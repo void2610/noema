@@ -184,7 +184,10 @@ namespace Void2610.Noema
         {
             foreach (var canvas in Object.FindObjectsByType<Canvas>(FindObjectsSortMode.None))
             {
-                if (canvas.isActiveAndEnabled && canvas.renderMode == RenderMode.ScreenSpaceCamera && canvas.worldCamera != null) return canvas.worldCamera;
+                if (!canvas.isActiveAndEnabled || canvas.renderMode != RenderMode.ScreenSpaceCamera) continue;
+                // 止まっているカメラや RT へ描くカメラ (一部の UI だけをぼかす等のオフスクリーン描画) は画面そのものではないので撮らない
+                var camera = canvas.worldCamera;
+                if (camera != null && camera.isActiveAndEnabled && camera.targetTexture == null) return camera;
             }
             // フォールバックしない: Camera.main で撮るとワールド描画混じりの誤ったベースラインを作りやすい
             return null;
