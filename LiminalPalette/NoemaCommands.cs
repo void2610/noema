@@ -49,21 +49,21 @@ namespace Void2610.Noema
             return result.Success ? $"hovered: {result.Message}" : $"failed: {result.Message}";
         }
 
-        [LiminalCommand("Ui/Navigate", Description = "ゲームパッドの十字キーを direction (Up / Down / Left / Right) へ times 回押して離す (仮想ゲームパッド)。EventSystem ではなく入力デバイスへ流すので、ゲーム側のナビゲーションの配線まで通る。成功で \"navigated: <direction> x<times>\"。動いた先は Ui/Focused で観測する")]
+        [LiminalCommand("Ui/Navigate", Description = "ゲームパッドの十字キーを direction (Up / Down / Left / Right、斜めは UpLeft / UpRight / DownLeft / DownRight で 2 つを同時に押す) へ times 回押して離す (仮想ゲームパッド)。EventSystem ではなく入力デバイスへ流すので、ゲーム側のナビゲーションの配線まで通る。成功で \"navigated: <direction> x<times>\"。動いた先は Ui/Focused で観測する")]
         public static async Task<string> Navigate(string direction, int times = 1)
         {
             var result = await UiNavigation.NavigateAsync(direction, times);
             return result.Success ? $"navigated: {result.Message}" : $"failed: {result.Message}";
         }
 
-        [LiminalCommand("Ui/Press", Description = "ゲームパッドのボタン button (South / East / West / North / LeftShoulder / RightShoulder / Start / Select) を times 回押して離す (仮想ゲームパッド)。決定 (South) や Cancel (East) を、選択中の要素や入力アクションへ実入力の経路で届ける。成功で \"pressed: <button> x<times>\"")]
+        [LiminalCommand("Ui/Press", Description = "ゲームパッドのボタン button (South / East / West / North / LeftShoulder / RightShoulder / Start / Select / DpadUp / DpadDown / DpadLeft / DpadRight) を times 回押して離す (仮想ゲームパッド)。決定 (South) や Cancel (East) を、選択中の要素や入力アクションへ実入力の経路で届ける。成功で \"pressed: <button> x<times>\"")]
         public static async Task<string> Press(string button, int times = 1)
         {
             var result = await UiNavigation.PressAsync(button, times);
             return result.Success ? $"pressed: {result.Message}" : $"failed: {result.Message}";
         }
 
-        [LiminalCommand("Ui/PadHold", Description = "ゲームパッドのボタン button を押したままにする (仮想ゲームパッド)。押している間の Ui/Navigate と Ui/Press は、このボタンと同時押しとして届く (LB を押しながらの十字キーなど)。離すのは Ui/PadRelease。成功で \"holding: <button>\"")]
+        [LiminalCommand("Ui/PadHold", Description = "ゲームパッドのボタン button を押したままにする (仮想ゲームパッド)。押している間の Ui/Navigate と Ui/Press は、このボタンと同時押しとして届く (LB を押しながらの十字キーなど)。十字キー (DpadUp 等) を押したままにすると、押し続けたときのリピートを検証できる。離すのは Ui/PadRelease。成功で \"holding: <button>\"")]
         public static async Task<string> PadHold(string button)
         {
             var result = await UiNavigation.HoldButtonAsync(button);

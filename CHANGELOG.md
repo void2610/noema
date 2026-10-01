@@ -13,6 +13,8 @@
 - LiminalPalette コマンド `Ui/PadHold` `Ui/PadRelease`
 - `UiWorldPointer.DeviceHoverAsync`: uGUI の要素の上へ仮想マウスを動かして乗せたままにする (押せる要素は実 Raycast で届く点、届かなければ矩形の中心)。ポインタの位置を入力デバイスから読むホバー選択 (arinn など) を検証できる
 - LiminalPalette コマンド `Ui/DeviceHover`、`Ui/Reachable` (`Ui/Probe` の真偽版)
+- `UiNavigateDirection` の斜め (`UpLeft` / `UpRight` / `DownLeft` / `DownRight`): 十字キーの 2 つの向きを同時に押し、8 方向で動くカーソルの斜めの移動を検証できる
+- `UiPadButton` の十字キー (`DpadUp` / `DpadDown` / `DpadLeft` / `DpadRight`): `Ui/PadHold` で押したままにし、押し続けたときのリピートの有無を検証できる
 
 ### Changed
 - 仮想マウスと仮想ゲームパッドが入力の設定 (バックグラウンドの扱い・Game View への回し方) を共有し、両方が操作を終えたときに元へ戻すようになった

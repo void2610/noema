@@ -34,9 +34,9 @@ namespace Void2610.Noema
             Application.quitting += _installed.Dispose;
         }
 
-        public Awaitable PressAsync(UiNavigateDirection direction, CancellationToken cancellationToken) => PressAsync(ToButton(direction), cancellationToken);
+        public Awaitable PressAsync(UiNavigateDirection direction, CancellationToken cancellationToken) => PressAsync(ToButtons(direction), cancellationToken);
 
-        public Awaitable PressButtonAsync(UiPadButton button, CancellationToken cancellationToken) => PressAsync(ToButton(button), cancellationToken);
+        public Awaitable PressButtonAsync(UiPadButton button, CancellationToken cancellationToken) => PressAsync(new[] { ToButton(button) }, cancellationToken);
 
         public async Awaitable HoldButtonAsync(UiPadButton button, CancellationToken cancellationToken)
         {
@@ -70,10 +70,12 @@ namespace Void2610.Noema
             await WaitFramesAsync(cancellationToken);
         }
 
-        private async Awaitable PressAsync(GamepadButton button, CancellationToken cancellationToken)
+        private async Awaitable PressAsync(GamepadButton[] buttons, CancellationToken cancellationToken)
         {
             var gamepad = Acquire();
-            InputSystem.QueueStateEvent(gamepad, HeldState().WithButton(button));
+            var pressed = HeldState();
+            foreach (var button in buttons) pressed = pressed.WithButton(button);
+            InputSystem.QueueStateEvent(gamepad, pressed);
             await WaitFramesAsync(cancellationToken);
             // 離しを届けないと、次の押下が同じ向きのときに新しい押下として扱われない
             InputSystem.QueueStateEvent(gamepad, HeldState());
@@ -118,12 +120,16 @@ namespace Void2610.Noema
             _keyboard = null;
         }
 
-        private static GamepadButton ToButton(UiNavigateDirection direction) => direction switch
+        private static GamepadButton[] ToButtons(UiNavigateDirection direction) => direction switch
         {
-            UiNavigateDirection.Up => GamepadButton.DpadUp,
-            UiNavigateDirection.Down => GamepadButton.DpadDown,
-            UiNavigateDirection.Left => GamepadButton.DpadLeft,
-            _ => GamepadButton.DpadRight,
+            UiNavigateDirection.Up => new[] { GamepadButton.DpadUp },
+            UiNavigateDirection.Down => new[] { GamepadButton.DpadDown },
+            UiNavigateDirection.Left => new[] { GamepadButton.DpadLeft },
+            UiNavigateDirection.Right => new[] { GamepadButton.DpadRight },
+            UiNavigateDirection.UpLeft => new[] { GamepadButton.DpadUp, GamepadButton.DpadLeft },
+            UiNavigateDirection.UpRight => new[] { GamepadButton.DpadUp, GamepadButton.DpadRight },
+            UiNavigateDirection.DownLeft => new[] { GamepadButton.DpadDown, GamepadButton.DpadLeft },
+            _ => new[] { GamepadButton.DpadDown, GamepadButton.DpadRight },
         };
 
         private static GamepadButton ToButton(UiPadButton button) => button switch
@@ -135,6 +141,10 @@ namespace Void2610.Noema
             UiPadButton.LeftShoulder => GamepadButton.LeftShoulder,
             UiPadButton.RightShoulder => GamepadButton.RightShoulder,
             UiPadButton.Start => GamepadButton.Start,
+            UiPadButton.DpadUp => GamepadButton.DpadUp,
+            UiPadButton.DpadDown => GamepadButton.DpadDown,
+            UiPadButton.DpadLeft => GamepadButton.DpadLeft,
+            UiPadButton.DpadRight => GamepadButton.DpadRight,
             _ => GamepadButton.Select,
         };
 

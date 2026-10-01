@@ -4,13 +4,17 @@ using UnityEngine;
 
 namespace Void2610.Noema
 {
-    /// <summary>十字キーの向き</summary>
+    /// <summary>十字キーの向き。斜めは 2 つの向きを同時に押す</summary>
     public enum UiNavigateDirection
     {
         Up,
         Down,
         Left,
         Right,
+        UpLeft,
+        UpRight,
+        DownLeft,
+        DownRight,
     }
 
     /// <summary>ゲームパッドのボタン (向きは Xbox 配置の位置で表す)</summary>
@@ -24,6 +28,10 @@ namespace Void2610.Noema
         RightShoulder,
         Start,
         Select,
+        DpadUp,
+        DpadDown,
+        DpadLeft,
+        DpadRight,
     }
 
     /// <summary>
@@ -81,10 +89,10 @@ namespace Void2610.Noema
         /// <summary>デバイス層の実装。noema の Input System 連携 asmdef が起動時に設定する</summary>
         public static IUiNavigationDriver Driver;
 
-        /// <summary>direction ("Up" / "Down" / "Left" / "Right"、大文字小文字は問わない) へ times 回押して離す</summary>
+        /// <summary>direction ("Up" / "Down" / "Left" / "Right" と斜めの "UpLeft" / "UpRight" / "DownLeft" / "DownRight"、大文字小文字は問わない) へ times 回押して離す</summary>
         public static async Awaitable<UiPointer.ClickResult> NavigateAsync(string direction, int times = 1, CancellationToken cancellationToken = default)
         {
-            if (!TryParse(direction, out var parsed)) return new UiPointer.ClickResult(false, $"direction '{direction}' は Up / Down / Left / Right のいずれか");
+            if (!TryParse(direction, out var parsed)) return new UiPointer.ClickResult(false, $"direction '{direction}' は {string.Join(" / ", Enum.GetNames(typeof(UiNavigateDirection)))} のいずれか");
             if (times < 1) return new UiPointer.ClickResult(false, $"times は 1 以上 (指定: {times})");
             if (Driver == null) return new UiPointer.ClickResult(false, "IUiNavigationDriver が未設定 (Input System 連携が無効)");
             try
@@ -98,7 +106,7 @@ namespace Void2610.Noema
             return new UiPointer.ClickResult(true, $"{parsed} x{times}");
         }
 
-        /// <summary>button ("South" / "East" / "West" / "North" / "LeftShoulder" / "RightShoulder" / "Start" / "Select"、大文字小文字は問わない) を times 回押して離す</summary>
+        /// <summary>button ("South" / "East" / "West" / "North" / "LeftShoulder" / "RightShoulder" / "Start" / "Select" / "DpadUp" / "DpadDown" / "DpadLeft" / "DpadRight"、大文字小文字は問わない) を times 回押して離す</summary>
         public static async Awaitable<UiPointer.ClickResult> PressAsync(string button, int times = 1, CancellationToken cancellationToken = default)
         {
             if (!TryParseButton(button, out var parsed)) return new UiPointer.ClickResult(false, $"button '{button}' は {string.Join(" / ", Enum.GetNames(typeof(UiPadButton)))} のいずれか");
@@ -115,7 +123,7 @@ namespace Void2610.Noema
             return new UiPointer.ClickResult(true, $"{parsed} x{times}");
         }
 
-        /// <summary>button を押したままにする。離すのは <see cref="ReleaseButtonAsync"/></summary>
+        /// <summary>button を押したままにする。離すのは <see cref="ReleaseButtonAsync"/>。十字キー (DpadUp 等) を押したままにすると、押し続けたときのリピートを検証できる</summary>
         public static async Awaitable<UiPointer.ClickResult> HoldButtonAsync(string button, CancellationToken cancellationToken = default)
         {
             if (!TryParseButton(button, out var parsed)) return new UiPointer.ClickResult(false, $"button '{button}' は {string.Join(" / ", Enum.GetNames(typeof(UiPadButton)))} のいずれか");

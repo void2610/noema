@@ -23,6 +23,8 @@ namespace Void2610.Noema.Tests
         [TestCase("down", UiNavigateDirection.Down)]
         [TestCase(" LEFT ", UiNavigateDirection.Left)]
         [TestCase("Right", UiNavigateDirection.Right)]
+        [TestCase("upright", UiNavigateDirection.UpRight)]
+        [TestCase("DownLeft", UiNavigateDirection.DownLeft)]
         public void 向きは大文字小文字と前後の空白を問わず解釈する(string text, UiNavigateDirection expected)
         {
             Assert.That(UiNavigation.TryParse(text, out var parsed), Is.True);
@@ -69,6 +71,7 @@ namespace Void2610.Noema.Tests
         [TestCase("east", UiPadButton.East)]
         [TestCase(" leftshoulder ", UiPadButton.LeftShoulder)]
         [TestCase("Start", UiPadButton.Start)]
+        [TestCase("dpadleft", UiPadButton.DpadLeft)]
         public void ボタン名は大文字小文字と前後の空白を問わず解釈する(string text, UiPadButton expected)
         {
             Assert.That(UiNavigation.TryParseButton(text, out var parsed), Is.True);
