@@ -90,26 +90,40 @@ namespace Void2610.Noema
             if (node == null) return new UiPointer.ClickResult(false, "node not found");
             if (node.IsWorld) return await ClickAsync(node, cancellationToken);
             if (!node.Visible) return new UiPointer.ClickResult(false, $"'{node.Id}' is not visible");
-            // 押す位置は実 Raycast で届く点にする。クリックハンドラを持たない要素は矩形の中心を押す
-            Vector2 point;
-            if (node.Role is UiRole.Button or UiRole.Checkbox or UiRole.Clickable)
-            {
-                if (!UiPointer.TryFindReachablePoint(node, out point, out var failure)) return failure;
-            }
-            else
-            {
-                point = node.ScreenBounds.center;
-            }
+            if (!TryFindDevicePressPoint(node, out var point, out var failure)) return failure;
             if (Driver == null) return new UiPointer.ClickResult(false, "IUiPointerDriver が未設定 (Input System 連携が無効)");
             try
             {
-                await Driver.ClickAsync(point, cancellationToken);
+                // 入場演出などで要素が動いている間に押すと空振りするため、動かした後に押す点を取り直し、止まってから押す
+                for (var attempt = 0; attempt < MAX_FOLLOW_ATTEMPTS; attempt++)
+                {
+                    await Driver.MoveAsync(point, cancellationToken);
+                    var refreshed = UiQuery.FindById(node.Id);
+                    if (refreshed == null) return new UiPointer.ClickResult(false, $"'{node.Id}' disappeared while moving the pointer");
+                    if (!refreshed.Visible) return new UiPointer.ClickResult(false, $"'{node.Id}' is not visible");
+                    if (!TryFindDevicePressPoint(refreshed, out var refreshedPoint, out failure)) return failure;
+                    if ((refreshedPoint - point).sqrMagnitude <= SETTLED_DISTANCE * SETTLED_DISTANCE)
+                    {
+                        await Driver.PressAsync(point, cancellationToken);
+                        return new UiPointer.ClickResult(true, node.Id);
+                    }
+                    point = refreshedPoint;
+                }
+                return new UiPointer.ClickResult(false, $"'{node.Id}' kept moving on screen ({MAX_FOLLOW_ATTEMPTS} attempts)");
             }
             finally
             {
                 Driver.Release();
             }
-            return new UiPointer.ClickResult(true, node.Id);
+        }
+
+        // 押す位置は実 Raycast で届く点にする。クリックハンドラを持たない要素は矩形の中心を押す
+        private static bool TryFindDevicePressPoint(UiNode node, out Vector2 point, out UiPointer.ClickResult failure)
+        {
+            if (node.Role is UiRole.Button or UiRole.Checkbox or UiRole.Clickable) return UiPointer.TryFindReachablePoint(node, out point, out failure);
+            point = node.ScreenBounds.center;
+            failure = default;
+            return true;
         }
 
         /// <summary>ポインタを node に乗せたままにする (ホバー表示の観測用)。外すときは <see cref="Unhover"/></summary>
