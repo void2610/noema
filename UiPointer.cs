@@ -155,7 +155,7 @@ namespace Void2610.Noema
             if (node.IsWorld) return new ClickResult(false, $"'{node.Id}' はワールド要素のため Submit できない");
             if (EventSystem.current == null) return new ClickResult(false, "no EventSystem");
             if (!node.Visible) return new ClickResult(false, $"'{node.Id}' is not visible");
-            if (node.Target is UnityEngine.UI.Selectable selectable && !selectable.IsInteractable()) return new ClickResult(false, $"'{node.Id}' is not interactable");
+            if (node.Target is UnityEngine.UI.Selectable selectable && !UiTreeBuilder.IsOperable(selectable)) return new ClickResult(false, $"'{node.Id}' is not interactable");
             var handler = ExecuteEvents.GetEventHandler<ISubmitHandler>(node.GameObject);
             if (handler == null) return new ClickResult(false, $"'{node.Id}' は submit を受けない");
             EventSystem.current.SetSelectedGameObject(node.GameObject);
@@ -256,7 +256,7 @@ namespace Void2610.Noema
             if (node == null) return new ClickResult(false, "node not found");
             if (EventSystem.current == null) return new ClickResult(false, "no EventSystem");
             // 無効化ボタンへのクリックは Unity 側で無視されるため、成功待ちポーリングが入力解禁ゲートになるよう明示的に失敗させる (非 Selectable は祖先ハンドラ経路のため対象外)
-            if (requireInteractable && node.Target is UnityEngine.UI.Selectable selectable && !selectable.IsInteractable()) return new ClickResult(false, $"'{node.Id}' is not interactable");
+            if (requireInteractable && node.Target is UnityEngine.UI.Selectable selectable && !UiTreeBuilder.IsOperable(selectable)) return new ClickResult(false, $"'{node.Id}' is not interactable");
             // カスタムクリック要素も CanvasGroup で入力を止めている間は失敗させ、成功待ちのポーリングを入力解禁ゲートにする
             if (requireInteractable && node.Role == UiRole.Clickable && !node.Interactable) return new ClickResult(false, $"'{node.Id}' is not interactable");
 

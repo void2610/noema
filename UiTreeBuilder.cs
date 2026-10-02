@@ -61,11 +61,11 @@ namespace Void2610.Noema
         // 対象 GameObject の role を判定してノード化する。UI 要素でなければ null
         private static UiNode TryCreateNode(GameObject go, Canvas rootCanvas, IReadOnlyDictionary<GameObject, string> idMap)
         {
-            if (go.TryGetComponent<Button>(out var button)) return Create(UiRole.Button, go, rootCanvas, idMap, LabelOf(go), button, button.IsInteractable());
-            if (go.TryGetComponent<Toggle>(out var toggle)) return Create(UiRole.Checkbox, go, rootCanvas, idMap, LabelOf(go), toggle, toggle.IsInteractable());
-            if (go.TryGetComponent<TMP_InputField>(out var tmpInput)) return Create(UiRole.Textbox, go, rootCanvas, idMap, tmpInput.text, tmpInput, tmpInput.IsInteractable());
-            if (go.TryGetComponent<Slider>(out var slider)) return Create(UiRole.Slider, go, rootCanvas, idMap, slider.value.ToString(System.Globalization.CultureInfo.InvariantCulture), slider, slider.IsInteractable());
-            if (go.TryGetComponent<TMP_Dropdown>(out var dropdown)) return Create(UiRole.Combobox, go, rootCanvas, idMap, dropdown.captionText != null ? dropdown.captionText.text : "", dropdown, dropdown.IsInteractable());
+            if (go.TryGetComponent<Button>(out var button)) return Create(UiRole.Button, go, rootCanvas, idMap, LabelOf(go), button, IsOperable(button));
+            if (go.TryGetComponent<Toggle>(out var toggle)) return Create(UiRole.Checkbox, go, rootCanvas, idMap, LabelOf(go), toggle, IsOperable(toggle));
+            if (go.TryGetComponent<TMP_InputField>(out var tmpInput)) return Create(UiRole.Textbox, go, rootCanvas, idMap, tmpInput.text, tmpInput, IsOperable(tmpInput));
+            if (go.TryGetComponent<Slider>(out var slider)) return Create(UiRole.Slider, go, rootCanvas, idMap, slider.value.ToString(System.Globalization.CultureInfo.InvariantCulture), slider, IsOperable(slider));
+            if (go.TryGetComponent<TMP_Dropdown>(out var dropdown)) return Create(UiRole.Combobox, go, rootCanvas, idMap, dropdown.captionText != null ? dropdown.captionText.text : "", dropdown, IsOperable(dropdown));
             if (go.TryGetComponent<ScrollRect>(out var scroll)) return Create(UiRole.ScrollArea, go, rootCanvas, idMap, "", scroll, scroll.enabled);
             // 標準 Selectable でないカスタムクリック要素 (カード等)。プロジェクトの実装のみ対象にしてライブラリ内部を拾わない
             if (TryGetProjectClickHandler(go, out var clickable)) return Create(UiRole.Clickable, go, rootCanvas, idMap, LabelOf(go), clickable, IsCustomInteractable(clickable));
@@ -80,6 +80,9 @@ namespace Void2610.Noema
             if (idMap.ContainsKey(go) && go.transform is RectTransform rectTransform) return Create(UiRole.Element, go, rootCanvas, idMap, "", rectTransform, false);
             return null;
         }
+
+        /// <summary>Selectable が実入力に反応するか。IsInteractable は CanvasGroup とフラグしか見ず、コンポーネントが無効でも true を返すため有効かも見る</summary>
+        internal static bool IsOperable(Selectable selectable) => selectable.isActiveAndEnabled && selectable.IsInteractable();
 
         // Selectable でないカスタム要素は、コンポーネントが有効かつ祖先 CanvasGroup が操作もレイキャストも通すときだけ操作可能とみなす
         // (入場演出中に CanvasGroup で入力を止める実装を、クリック成功待ちのポーリングで待てるようにするため)

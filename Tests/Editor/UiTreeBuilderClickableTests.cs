@@ -73,5 +73,18 @@ namespace Void2610.Noema.Tests
             group.interactable = true;
             Assert.That(UiTreeBuilder.Build().First(n => n.GameObject == go).Interactable, Is.True);
         }
+
+        [Test]
+        public void コンポーネントが無効なButtonは操作不可とみなす()
+        {
+            var go = NewUnderCanvas(out _);
+            var button = go.AddComponent<Button>();
+
+            Assert.That(UiTreeBuilder.Build().First(n => n.GameObject == go).Interactable, Is.True);
+
+            // interactable フラグが立っていても、無効なコンポーネントは実入力に反応しない
+            button.enabled = false;
+            Assert.That(UiTreeBuilder.Build().First(n => n.GameObject == go).Interactable, Is.False);
+        }
     }
 }
