@@ -203,6 +203,13 @@ namespace Void2610.Noema
             return node == null ? UiQuery.DescribeNotFound(id) : UiInspect.EffectiveAlpha(node.GameObject).ToString("0.00", CultureInfo.InvariantCulture);
         }
 
+        [LiminalCommand("Ui/Scale", Description = "ID のノードの localScale.x を小数 2 桁で返す。選択やホバーで拡大・縮小する演出の途中と完了を観測する")]
+        public static string Scale(string id)
+        {
+            var node = UiQuery.FindById(id);
+            return node == null ? UiQuery.DescribeNotFound(id) : node.GameObject.transform.localScale.x.ToString("0.00", CultureInfo.InvariantCulture);
+        }
+
         [LiminalCommand("Ui/Stable", Description = "ID のノードの位置と実効 alpha が frames フレーム連続で変わらなければ \"true\" (演出の静止待ち)")]
         public static async Task<string> Stable(string id, int frames = 5) => await UiStability.IsStableAsync(id, frames) ? TRUE : FALSE;
 

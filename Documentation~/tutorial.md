@@ -183,6 +183,7 @@ noema 自体はテストフレームワーク非依存の観測・操作 API 集
 | `Ui/Reachable` | `true` / `false` (`Ui/Probe` の真偽版。スクロールで外へ出た・遮られたを期待値比較で待つ) |
 | `Ui/Exists` `Ui/Visible` `Ui/Interactable` | `true` / `false` |
 | `Ui/Alpha` | 実効 alpha を小数 2 桁で (`0.00` 〜 `1.00`)。フェードの途中と完了を見る |
+| `Ui/Scale` | localScale.x を小数 2 桁で。選択やホバーで拡大・縮小する演出の途中と完了を見る |
 | `Ui/Text` | リッチテキストタグを除いた表示文字 |
 | `Ui/Focused` | フォーカス中のノードの ID |
 | `Ui/Count` | ID が prefix で始まる表示中のノード数 |
