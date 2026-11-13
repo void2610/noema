@@ -121,7 +121,7 @@ namespace Void2610.Noema
             return violation != null ? new UiMonkeyResult(false, violation, trace) : new UiMonkeyResult(true, null, trace);
         }
 
-        /// <summary>押せる要素 (除外を引いた ID の昇順) が空でなく、顔ぶれと位置が StableFrames 続けて変わらなくなったら返す。時間切れ・失敗のログなら null</summary>
+        /// <summary>押せる候補 (除外を引いた ID の昇順) の顔ぶれと位置が StableFrames 続けて変わらなくなったら、そのうち実際に届くものを返す。時間切れ・失敗のログなら null</summary>
         private static async Awaitable<List<string>> WaitForSettledAsync(UiMonkeyOptions options, LogWatcher logs, CancellationToken cancellationToken)
         {
             var deadline = Time.realtimeSinceStartup + options.SettleTimeoutSeconds;
@@ -134,7 +134,13 @@ namespace Void2610.Noema
                 var signature = string.Join("\n", candidates.Select(n => $"{n.Id} {Mathf.RoundToInt(n.ScreenBounds.x)},{Mathf.RoundToInt(n.ScreenBounds.y)},{Mathf.RoundToInt(n.ScreenBounds.width)},{Mathf.RoundToInt(n.ScreenBounds.height)}"));
                 if (candidates.Count > 0 && signature == lastSignature)
                 {
-                    if (++stableFrames >= options.StableFrames) return candidates.Select(n => n.Id).ToList();
+                    if (++stableFrames >= options.StableFrames)
+                    {
+                        // 到達の判定は重いので、顔ぶれと位置が止まってから 1 回だけ行う
+                        var reachable = UiQuery.FilterReachable(candidates).Select(n => n.Id).ToList();
+                        if (reachable.Count > 0) return reachable;
+                        stableFrames = 0;
+                    }
                 }
                 else
                 {
@@ -148,7 +154,7 @@ namespace Void2610.Noema
         }
 
         private static List<UiNode> CollectCandidates(IReadOnlyList<string> excludedIdPrefixes) =>
-            UiQuery.FindPressable()
+            UiQuery.FindPressCandidates()
                 .Where(n => !excludedIdPrefixes.Any(prefix => n.Id.StartsWith(prefix, StringComparison.Ordinal)))
                 .OrderBy(n => n.Id, StringComparer.Ordinal)
                 .ToList();

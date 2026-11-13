@@ -67,19 +67,29 @@ namespace Void2610.Noema
         /// いま実入力で押せるノード (表示中・操作可能で、押した点が遮られていないボタン / トグル / クリック要素)。
         /// ワールド要素も含む。同じ ID が複数あるときは最初の 1 件だけ返す
         /// </summary>
-        public static IReadOnlyList<UiNode> FindPressable()
+        public static IReadOnlyList<UiNode> FindPressable() => FilterReachable(FindPressCandidates());
+
+        /// <summary>
+        /// 表示中・操作可能なボタン / トグル / クリック要素。遮られているかは見ない。
+        /// 到達の判定 (実 Raycast) は重いので、毎フレーム顔ぶれだけを見たい処理はこちらを使い、押す直前に <see cref="FilterReachable"/> で絞る
+        /// </summary>
+        internal static List<UiNode> FindPressCandidates() =>
+            UiTreeBuilder.Build()
+                .Where(n => n.Visible && n.Interactable && n.Role is UiRole.Button or UiRole.Checkbox or UiRole.Clickable)
+                .ToList();
+
+        /// <summary>nodes のうち、いま押した点が遮られずに届くもの。同じ ID は最初の 1 件だけ残す</summary>
+        internal static List<UiNode> FilterReachable(IEnumerable<UiNode> nodes)
         {
             var seen = new HashSet<string>();
-            var pressable = new List<UiNode>();
-            foreach (var node in UiTreeBuilder.Build())
+            var reachable = new List<UiNode>();
+            foreach (var node in nodes)
             {
-                if (!node.Visible || !node.Interactable) continue;
-                if (node.Role is not (UiRole.Button or UiRole.Checkbox or UiRole.Clickable)) continue;
                 if (seen.Contains(node.Id) || !UiPointer.Probe(node).Success) continue;
                 seen.Add(node.Id);
-                pressable.Add(node);
+                reachable.Add(node);
             }
-            return pressable;
+            return reachable;
         }
 
         // 不可視の同名要素 (閉じた画面のボタン等) を拾って Click が誤失敗しないよう、可視ノードを優先する
