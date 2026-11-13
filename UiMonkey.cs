@@ -59,6 +59,7 @@ namespace Void2610.Noema
     public static class UiMonkey
     {
         public const string TRACE_SEPARATOR = " > ";
+        private const int MAX_CLICK_RETRIES = 3;
 
         public static async Awaitable<UiMonkeyResult> RunAsync(UiMonkeyOptions options, CancellationToken cancellationToken = default)
         {
@@ -79,7 +80,14 @@ namespace Void2610.Noema
 
                 var id = candidates[random.Next(candidates.Count)];
                 trace.Add(id);
-                await ClickAsync(id, cancellationToken);
+                var click = await ClickAsync(id, cancellationToken);
+                // 押す瞬間にカメラや演出で要素が動くと空振りする。空振りを結果に残すと同じシードでも実行ごとに状態が変わるので、止まるのを待って押し直す
+                for (var retry = 0; !click.Success && retry < MAX_CLICK_RETRIES && logs.Failure == null; retry++)
+                {
+                    var again = await WaitForSettledAsync(options, logs, cancellationToken);
+                    if (again == null || !again.Contains(id)) break;
+                    click = await ClickAsync(id, cancellationToken);
+                }
                 if (logs.Failure != null) return new UiMonkeyResult(false, logs.Failure, trace);
             }
 
