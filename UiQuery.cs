@@ -63,6 +63,25 @@ namespace Void2610.Noema
             return matches.FirstOrDefault(n => n.Visible) ?? matches.FirstOrDefault();
         }
 
+        /// <summary>
+        /// いま実入力で押せるノード (表示中・操作可能で、押した点が遮られていないボタン / トグル / クリック要素)。
+        /// ワールド要素も含む。同じ ID が複数あるときは最初の 1 件だけ返す
+        /// </summary>
+        public static IReadOnlyList<UiNode> FindPressable()
+        {
+            var seen = new HashSet<string>();
+            var pressable = new List<UiNode>();
+            foreach (var node in UiTreeBuilder.Build())
+            {
+                if (!node.Visible || !node.Interactable) continue;
+                if (node.Role is not (UiRole.Button or UiRole.Checkbox or UiRole.Clickable)) continue;
+                if (seen.Contains(node.Id) || !UiPointer.Probe(node).Success) continue;
+                seen.Add(node.Id);
+                pressable.Add(node);
+            }
+            return pressable;
+        }
+
         // 不可視の同名要素 (閉じた画面のボタン等) を拾って Click が誤失敗しないよう、可視ノードを優先する
         public static UiNode FindByRole(UiRole role, string text = null)
         {

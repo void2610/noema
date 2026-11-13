@@ -16,6 +16,8 @@
 - `UiNavigateDirection` の斜め (`UpLeft` / `UpRight` / `DownLeft` / `DownRight`): 十字キーの 2 つの向きを同時に押し、8 方向で動くカーソルの斜めの移動を検証できる
 - `UiPadButton` の十字キー (`DpadUp` / `DpadDown` / `DpadLeft` / `DpadRight`): `Ui/PadHold` で押したままにし、押し続けたときのリピートの有無を検証できる
 - LiminalPalette コマンド `Ui/Scale` (localScale.x を小数 2 桁で返し、選択やホバーで拡大・縮小する演出を観測する)
+- LiminalPalette コマンド `Ui/Click` `Ui/ClickWithin` `Ui/DeviceClick` の引数 `timeoutSeconds`: 正の値を渡すと、押せるようになるまでその秒数だけ毎フレーム試し直し、1 回だけ押す。操作のコマンドを利用側がポーリングせずに、演出の終わりや入力の受付を待てる (既定の 0 は従来どおり 1 回だけ試す)
+- `UiQuery.FindPressable` / LiminalPalette コマンド `Ui/Pressable`: いま実入力で押せるノード (表示中・操作可能で遮られていないボタン / トグル / クリック要素、ワールド要素を含む) を返す
 
 ### Changed
 - 仮想マウスと仮想ゲームパッドが入力の設定 (バックグラウンドの扱い・Game View への回し方) を共有し、両方が操作を終えたときに元へ戻すようになった

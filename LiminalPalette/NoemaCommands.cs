@@ -1,7 +1,9 @@
+using System;
 using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using UnityEngine;
 using Void2610.LiminalPalette;
 
 namespace Void2610.Noema
@@ -15,15 +17,16 @@ namespace Void2610.Noema
     {
         private const string TRUE = "true";
         private const string FALSE = "false";
+        private const string CLICKED_PREFIX = "clicked: ";
 
-        [LiminalCommand("Ui/Click", Description = "ID のノードを実入力経路でクリックする。uGUI は EventSystem の Raycast、ワールド要素は仮想マウス。成功で \"clicked: <id>\"")]
-        public static async Task<string> Click(string id)
+        [LiminalCommand("Ui/Click", Description = "ID のノードを実入力経路でクリックする。uGUI は EventSystem の Raycast、ワールド要素は仮想マウス。 timeoutSeconds を正にすると、押せるようになるまでその秒数だけ毎フレーム試し直す (押すのは 1 回)。成功で \"clicked: <id>\"")]
+        public static Task<string> Click(string id, float timeoutSeconds = 0f) => RetryUntilClickedAsync(async () =>
         {
             var node = UiQuery.FindById(id);
             if (node == null) return UiQuery.DescribeNotFound(id);
             var result = node.IsWorld ? await UiWorldPointer.ClickAsync(node) : UiPointer.Click(node);
             return result.ToString();
-        }
+        }, timeoutSeconds);
 
         [LiminalCommand("Ui/ClickText", Description = "表示文字 (部分一致) で見つけたボタンを実 Raycast でクリックする。ID の無い要素向け。成功で \"clicked: <id>\"")]
         public static string ClickText(string text)
@@ -32,13 +35,13 @@ namespace Void2610.Noema
             return node == null ? $"button with text '{text}' not found" : UiPointer.Click(node).ToString();
         }
 
-        [LiminalCommand("Ui/DeviceClick", Description = "ID のノードの見えている点を入力デバイス (仮想マウス) で押す。EventSystem ではなく入力アクションを購読する UI 向け。成功で \"clicked: <id>\"")]
-        public static async Task<string> DeviceClick(string id)
+        [LiminalCommand("Ui/DeviceClick", Description = "ID のノードの見えている点を入力デバイス (仮想マウス) で押す。EventSystem ではなく入力アクションを購読する UI 向け。 timeoutSeconds を正にすると、押せるようになるまでその秒数だけ毎フレーム試し直す (押すのは 1 回)。成功で \"clicked: <id>\"")]
+        public static Task<string> DeviceClick(string id, float timeoutSeconds = 0f) => RetryUntilClickedAsync(async () =>
         {
             var node = UiQuery.FindById(id);
             if (node == null) return UiQuery.DescribeNotFound(id);
             return (await UiWorldPointer.DeviceClickAsync(node)).ToString();
-        }
+        }, timeoutSeconds);
 
         [LiminalCommand("Ui/DeviceHover", Description = "ID のノードの上へ入力デバイス (仮想マウス) を動かして乗せたままにする。押せる要素は実 Raycast で届く点へ、届く点が無ければ矩形の中心へ動かす。ポインタの位置をデバイスから読むホバー選択の操作用。外すのは Ui/Unhover。成功で \"hovered: <id>\"")]
         public static async Task<string> DeviceHover(string id)
@@ -84,15 +87,15 @@ namespace Void2610.Noema
             return result.Success ? $"pressed: {result.Message}" : $"failed: {result.Message}";
         }
 
-        [LiminalCommand("Ui/ClickWithin", Description = "ID が prefix で始まり表示文字に text を含むノードを実入力経路でクリックする (一覧からカード名等で選ぶ)。成功で \"clicked: <prefix> '<text>'\"")]
-        public static async Task<string> ClickWithin(string prefix, string text)
+        [LiminalCommand("Ui/ClickWithin", Description = "ID が prefix で始まり表示文字に text を含むノードを実入力経路でクリックする (一覧からカード名等で選ぶ)。 timeoutSeconds を正にすると、押せるようになるまでその秒数だけ毎フレーム試し直す (押すのは 1 回)。成功で \"clicked: <prefix> '<text>'\"")]
+        public static Task<string> ClickWithin(string prefix, string text, float timeoutSeconds = 0f) => RetryUntilClickedAsync(async () =>
         {
             var node = UiQuery.FindWithin(prefix, text);
             if (node == null) return $"node under '{prefix}' with text '{text}' not found";
             var result = node.IsWorld ? await UiWorldPointer.ClickAsync(node) : UiPointer.Click(node);
             // どの ID が選ばれたかは呼び出し側に分からないため、成功時は入力から決まる文字列で返して期待値比較できるようにする
             return result.Success ? $"clicked: {prefix} '{text}'" : result.ToString();
-        }
+        }, timeoutSeconds);
 
         [LiminalCommand("Ui/IdWithin", Description = "ID が prefix で始まり表示文字に text を含むノードの ID。無ければ (none)")]
         public static string IdWithin(string prefix, string text) => UiQuery.FindWithin(prefix, text)?.Id ?? "(none)";
@@ -225,6 +228,19 @@ namespace Void2610.Noema
         public static async Task<string> ClickLinkWithin(string prefix, string linkId) =>
             (await UiLinkPointer.ClickLinkWithinAsync(prefix, linkId)).ToString();
 
+        [LiminalCommand("Ui/Pressable", Description = "いま実入力で押せるノード (表示中・操作可能・遮られていないボタン / トグル / クリック要素。マップのマス等のワールド要素も含む) を 1 行 1 ノード (役割・ID・表示文字のタブ区切り。表示文字が無ければ役割と ID だけ) で返す。filter は ID の部分一致。無ければ (none)")]
+        public static string Pressable(string filter = "")
+        {
+            var sb = new StringBuilder();
+            foreach (var node in UiQuery.FindPressable())
+            {
+                if (!string.IsNullOrEmpty(filter) && !node.Id.Contains(filter)) continue;
+                var text = node.PlainText;
+                sb.AppendLine(text.Length == 0 ? $"{node.Role}\t{node.Id}" : $"{node.Role}\t{node.Id}\t{text}");
+            }
+            return sb.Length == 0 ? "(none)" : sb.ToString().TrimEnd();
+        }
+
         [LiminalCommand("Ui/Tree", Description = "セマンティックツリーを 1 行 1 ノードで返す (ID の確認用)。filter は ID の部分一致")]
         public static string Tree(string filter = "", bool visibleOnly = true)
         {
@@ -279,5 +295,18 @@ namespace Void2610.Noema
 
         [LiminalCommand("Ui/VisualUpdateBaseline", Description = "UI カメラの描画でベースライン PNG を上書きする (意図した見た目の変更時)")]
         public static string VisualUpdateBaseline(string name) => UiVisualRegression.UpdateBaseline(name);
+
+        // 押せない間の試行は何も押さずに失敗を返すので、成功するまで繰り返しても押すのは 1 回になる
+        private static async Task<string> RetryUntilClickedAsync(Func<Task<string>> attempt, float timeoutSeconds)
+        {
+            var deadline = Time.realtimeSinceStartup + timeoutSeconds;
+            while (true)
+            {
+                var result = await attempt();
+                if (result.StartsWith(CLICKED_PREFIX, StringComparison.Ordinal) || !(timeoutSeconds > 0f)) return result;
+                if (Time.realtimeSinceStartup >= deadline) return $"{result} ({timeoutSeconds.ToString(CultureInfo.InvariantCulture)} 秒待っても押せなかった)";
+                await Awaitable.NextFrameAsync();
+            }
+        }
     }
 }
