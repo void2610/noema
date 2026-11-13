@@ -18,6 +18,8 @@
 - LiminalPalette コマンド `Ui/Scale` (localScale.x を小数 2 桁で返し、選択やホバーで拡大・縮小する演出を観測する)
 - LiminalPalette コマンド `Ui/Click` `Ui/ClickWithin` `Ui/DeviceClick` の引数 `timeoutSeconds`: 正の値を渡すと、押せるようになるまでその秒数だけ毎フレーム試し直し、1 回だけ押す。操作のコマンドを利用側がポーリングせずに、演出の終わりや入力の受付を待てる (既定の 0 は従来どおり 1 回だけ試す)
 - `UiQuery.FindPressable` / LiminalPalette コマンド `Ui/Pressable`: いま実入力で押せるノード (表示中・操作可能で遮られていないボタン / トグル / クリック要素、ワールド要素を含む) を返す
+- `UiMonkey.RunAsync` / LiminalPalette コマンド `Ui/Monkey`: いま押せる要素からシード付きの乱数で選んで実入力で押し続ける探索 (モンキーテスト)。例外のログ・押せる要素が出ない行き詰まり・利用側の不変条件 (`UiMonkeyOptions.CheckInvariant`) の破れを失敗として、押した ID の列と一緒に返す。押すのは候補の顔ぶれと位置が止まってからで、利用側は処理中の間は待たせる条件 (`IsBusy`) と打ち切る条件 (`ShouldStop`) を渡せる
+- `UiMonkey.ReplayAsync` / LiminalPalette コマンド `Ui/MonkeyReplay`: 探索が返した ID の列を、押せるようになるのを待ちながら押し直す (失敗の再現用)
 
 ### Changed
 - 仮想マウスと仮想ゲームパッドが入力の設定 (バックグラウンドの扱い・Game View への回し方) を共有し、両方が操作を終えたときに元へ戻すようになった

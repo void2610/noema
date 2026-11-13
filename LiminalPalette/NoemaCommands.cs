@@ -296,6 +296,26 @@ namespace Void2610.Noema
         [LiminalCommand("Ui/VisualUpdateBaseline", Description = "UI カメラの描画でベースライン PNG を上書きする (意図した見た目の変更時)")]
         public static string VisualUpdateBaseline(string name) => UiVisualRegression.UpdateBaseline(name);
 
+        [LiminalCommand("Ui/Monkey", Description = "いま押せる要素からシード seed の乱数で選んで steps 回押す探索。exclude は押さない ID の接頭辞 (カンマ区切り)。例外のログ (failOnErrorLog が true ならエラーログも)・押せる要素が settleTimeoutSeconds 秒出ない行き詰まりで失敗にする。成功で \"ok: <steps> steps\"、失敗で理由と押した ID の列 (trace) を返す")]
+        public static async Task<string> Monkey(int seed, int steps = 100, string exclude = "", bool failOnErrorLog = false, float settleTimeoutSeconds = 30f) =>
+            (await UiMonkey.RunAsync(MonkeyOptions(seed, steps, exclude, failOnErrorLog, settleTimeoutSeconds))).ToString();
+
+        [LiminalCommand("Ui/MonkeyReplay", Description = "Ui/Monkey が返した trace (ID を \" > \" で区切った列) を順に、押せるようになるのを待って押し直す。失敗の再現用。成功で \"ok: <steps> steps\"")]
+        public static async Task<string> MonkeyReplay(string trace, bool failOnErrorLog = false, float settleTimeoutSeconds = 30f)
+        {
+            var ids = (trace ?? "").Split(new[] { UiMonkey.TRACE_SEPARATOR }, StringSplitOptions.RemoveEmptyEntries).Select(id => id.Trim()).ToList();
+            return (await UiMonkey.ReplayAsync(ids, MonkeyOptions(0, ids.Count, "", failOnErrorLog, settleTimeoutSeconds))).ToString();
+        }
+
+        private static UiMonkeyOptions MonkeyOptions(int seed, int steps, string exclude, bool failOnErrorLog, float settleTimeoutSeconds) => new()
+        {
+            Seed = seed,
+            Steps = steps,
+            ExcludedIdPrefixes = (exclude ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries).Select(prefix => prefix.Trim()).ToList(),
+            FailOnErrorLog = failOnErrorLog,
+            SettleTimeoutSeconds = settleTimeoutSeconds,
+        };
+
         // 押せない間の試行は何も押さずに失敗を返すので、成功するまで繰り返しても押すのは 1 回になる
         private static async Task<string> RetryUntilClickedAsync(Func<Task<string>> attempt, float timeoutSeconds)
         {
