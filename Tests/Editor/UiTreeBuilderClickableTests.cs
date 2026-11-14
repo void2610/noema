@@ -75,6 +75,28 @@ namespace Void2610.Noema.Tests
         }
 
         [Test]
+        public void グラフィックがどれもレイキャストを受けないClickableは操作不可とみなす()
+        {
+            var go = NewUnderCanvas(out _);
+            go.AddComponent<FakeCard>();
+            var image = go.AddComponent<Image>();
+            var child = new GameObject("label", typeof(RectTransform));
+            child.transform.SetParent(go.transform, false);
+            var label = child.AddComponent<Image>();
+            label.raycastTarget = false;
+
+            Assert.That(UiTreeBuilder.Build().First(n => n.GameObject == go).Interactable, Is.True);
+
+            // 入場演出中などにレイキャストを止めたカードは、ポインタが届かないので押せない
+            image.raycastTarget = false;
+            Assert.That(UiTreeBuilder.Build().First(n => n.GameObject == go).Interactable, Is.False);
+
+            // 子のグラフィックがレイキャストを受ければ、押下は親の要素へ届く
+            label.raycastTarget = true;
+            Assert.That(UiTreeBuilder.Build().First(n => n.GameObject == go).Interactable, Is.True);
+        }
+
+        [Test]
         public void コンポーネントが無効なButtonは操作不可とみなす()
         {
             var go = NewUnderCanvas(out _);

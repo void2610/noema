@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using TMPro;
 using UnityEngine;
@@ -89,6 +90,9 @@ namespace Void2610.Noema
         private static bool IsCustomInteractable(Component component)
         {
             if (component is not Behaviour { isActiveAndEnabled: true }) return false;
+            // レイキャストを止めて入力を止める実装もあるので、グラフィックを持つ要素はどれかがレイキャストを受けるときだけ押せるとみなす
+            var graphics = component.GetComponentsInChildren<Graphic>();
+            if (graphics.Length > 0 && !graphics.Any(graphic => graphic.isActiveAndEnabled && graphic.raycastTarget)) return false;
             foreach (var group in component.GetComponentsInParent<CanvasGroup>())
             {
                 if (!group.interactable || !group.blocksRaycasts) return false;
