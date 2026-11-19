@@ -88,6 +88,8 @@ namespace Void2610.Noema
                     if (again == null || !again.Contains(id)) break;
                     click = await ClickAsync(id, cancellationToken);
                 }
+                // ポインタを押した位置に残すと、後から動いた UI (手札など) がその下に来てホバーし続け、画面が落ち着かなくなる
+                UiWorldPointer.Driver?.Leave();
                 if (logs.Failure != null) return new UiMonkeyResult(false, logs.Failure, trace);
             }
 

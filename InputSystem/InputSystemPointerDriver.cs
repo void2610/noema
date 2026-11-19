@@ -71,6 +71,13 @@ namespace Void2610.Noema
             _disabledMice.Clear();
         }
 
+        public void Leave()
+        {
+            Release();
+            if (_mouse != null && _mouse.added) InputSystem.RemoveDevice(_mouse);
+            _mouse = null;
+        }
+
         private Mouse Acquire()
         {
             GameInputRouting.Acquire(this);
@@ -87,12 +94,7 @@ namespace Void2610.Noema
             return _mouse;
         }
 
-        private void Dispose()
-        {
-            Release();
-            if (_mouse != null && _mouse.added) InputSystem.RemoveDevice(_mouse);
-            _mouse = null;
-        }
+        private void Dispose() => Leave();
 
         private static async Awaitable WaitFramesAsync(CancellationToken cancellationToken)
         {

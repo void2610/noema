@@ -19,6 +19,9 @@ namespace Void2610.Noema
 
         /// <summary>止めていた他のポインタを戻し、操作用のポインタを片付ける</summary>
         void Release();
+
+        /// <summary>操作用のポインタを画面から取り除き、ゲーム側のホバーを解く (次に動かすときに付け直す)</summary>
+        void Leave();
     }
 
     /// <summary>
